@@ -27,7 +27,6 @@ Diese App nutzt die kostenlose und gemeinschaftlich gepflegte **Radio-Browser AP
 
 - **API-Provider:** [radio-browser.info](https://www.radio-browser.info/)
 - **Daten-Lizenz:** Die Daten der Musikstationen stehen unter der **Open Database License (ODbL)** bzw. sind als **CC0 (Public Domain)** deklariert.
-- **Fair Use:** Die App nutzt ein strukturiertes Caching für statische Kategorien und sendet einen eindeutigen User-Agent, um die Serverressourcen der Community zu schonen.
 
 ---
 
