@@ -1,3 +1,9 @@
+//
+//  FullPlayerView.swift
+//  Spectrum
+//
+//  Created by Farin  on 6/19/26.
+//
 import SwiftUI
 import SwiftData
 
@@ -113,7 +119,6 @@ struct FullPlayerView: View {
                 
                 HStack {
                     Button(action: {
-                        // KORREKTUR: Nutzt togglePlayback() statt togglePlayPause()
                         playbackManager.togglePlayback()
                     }) {
                         Image(systemName: playbackManager.isPlaying ? "pause.circle.fill" : "play.circle.fill")

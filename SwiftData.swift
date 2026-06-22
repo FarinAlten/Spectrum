@@ -1,3 +1,9 @@
+//
+//  SwiftData.swift
+//  Spectrum
+//
+//  Created by Farin  on 6/19/26.
+//
 import Foundation
 import SwiftData
 
@@ -19,9 +25,7 @@ final class FavoriteStation {
         self.createdAt = Date()
     }
     
-    // KORREKTUR: Initialisierer auf das neue RadioStation-Modell umgestellt
     convenience init(from station: RadioStation) {
-        // Wandelt den url-String aus RadioStation in ein valides URL-Objekt um (Fallback auf leere URL im Fehlerfall)
         let stationURL = URL(string: station.url) ?? URL(string: "about:blank")!
         
         self.init(

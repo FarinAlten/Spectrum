@@ -1,3 +1,9 @@
+//
+//  RadioAPIClient.swift
+//  Spectrum
+//
+//  Created by Farin  on 6/19/26.
+//
 import Foundation
 
 @Observable
@@ -141,7 +147,6 @@ final class RadioAPIClient {
     }
 }
 
-// MARK: - API Hilfsstrukturen
 
 struct APICountry: Codable {
     let name: String
@@ -157,7 +162,6 @@ struct SelectedCategory: Hashable {
     let type: RadioAPIClient.CategoryType
 }
 
-// KORREKTUR: Umbenannt von Station zu RadioStation zur Konfliktvermeidung
 struct RadioStation: Codable, Identifiable, Hashable {
     let id: String
     let name: String

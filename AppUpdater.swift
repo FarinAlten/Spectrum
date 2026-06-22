@@ -1,3 +1,9 @@
+//
+//  AppUpdater.swift
+//  Spectrum
+//
+//  Created by Farin  on 6/19/26.
+//
 import Foundation
 import Observation
 
@@ -21,7 +27,6 @@ final class AppUpdater {
     var hasChecked = false
     
     func checkForUpdates() async {
-        // TODO: Ersetze DEIN_GITHUB_NAME und DEIN_REPO_NAME mit deinen Projektdaten
         guard let url = URL(string: "https://api.github.com/repos/FarinAlten/Spectrum/releases/latest") else { return }
         
         var request = URLRequest(url: url)

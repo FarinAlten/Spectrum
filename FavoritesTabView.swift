@@ -1,3 +1,9 @@
+//
+//  FavriteTabView.swift
+//  Spectrum
+//
+//  Created by Farin  on 6/19/26.
+//
 import SwiftUI
 import SwiftData
 
@@ -5,7 +11,6 @@ struct FavoritesTabView: View {
     @Environment(PlaybackManager.self) private var playbackManager
     @Environment(\.modelContext) private var modelContext
     
-    // Sortierung hinzufügen, um die Liste bei Änderungen zur Aktualisierung zu zwingen
     @Query(sort: \FavoriteStation.name) private var favoriteStations: [FavoriteStation]
     
     var body: some View {

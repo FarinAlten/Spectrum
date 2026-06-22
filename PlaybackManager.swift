@@ -1,3 +1,9 @@
+//
+//  PlaybackManager.swift
+//  Spectrum
+//
+//  Created by Farin  on 6/19/26.
+//
 import Foundation
 import AVFoundation
 import MediaPlayer
@@ -6,7 +12,6 @@ import MediaPlayer
 import UIKit
 #endif
 
-// Globale, permanente Instanz außerhalb der Klasse, um die Deallokation beim View-Redraw zu verhindern
 private let sharedAudioPlayer = AVPlayer()
 
 @Observable
@@ -19,7 +24,6 @@ final class PlaybackManager {
     init() {
         setupRemoteCommandCenter()
         sharedAudioPlayer.automaticallyWaitsToMinimizeStalling = true
-        // Signalisiert dem System den initialen Zustand für das Kontrollzentrum
         nowPlayingInfoCenter.playbackState = .paused
     }
     
@@ -27,7 +31,6 @@ final class PlaybackManager {
         self.currentStation = station
         
         #if os(iOS)
-        // Audio-Session mit .playback Kategorie und .default Modus konfigurieren
         let audioSession = AVAudioSession.sharedInstance()
         do {
             try audioSession.setCategory(.playback, mode: .default, options: [.allowAirPlay])
@@ -37,7 +40,6 @@ final class PlaybackManager {
         }
         #endif
         
-        // URL auf HTTPS korrigieren, falls nötig
         var urlString = station.url
         if urlString.hasPrefix("http://") {
             urlString = urlString.replacingOccurrences(of: "http://", with: "https://")
@@ -45,7 +47,6 @@ final class PlaybackManager {
         
         guard let secureUrl = URL(string: urlString) else { return }
         
-        // Asset-Konfiguration mit HTTP-Header-Anpassung gegen Server-Abbrüche
         let options: [String: Any] = [
             "AVURLAssetHTTPHeaderFieldsKey": ["User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"],
             AVURLAssetPreferPreciseDurationAndTimingKey: false
@@ -54,7 +55,6 @@ final class PlaybackManager {
         let asset = AVURLAsset(url: secureUrl, options: options)
         let playerItem = AVPlayerItem(asset: asset)
         
-        // Verhindert das Stoppen bei minimalem Paketverlust
         playerItem.preferredForwardBufferDuration = 5
         playerItem.canUseNetworkResourcesForLiveStreamingWhilePaused = true
         
@@ -64,10 +64,8 @@ final class PlaybackManager {
         self.isPlaying = true
         nowPlayingInfoCenter.playbackState = .playing
         
-        // Sofortiges Update der Text-Metadaten im Kontrollzentrum
         updateNowPlaying(station: station, artwork: nil)
         
-        // Asynchrones Laden des Favicons für das Cover
         if !station.favicon.isEmpty, let url = URL(string: station.favicon) {
             Task {
                 #if os(iOS)

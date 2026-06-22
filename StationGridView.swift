@@ -1,3 +1,9 @@
+//
+//  StatioGridView.swift
+//  Spectrum
+//
+//  Created by Farin  on 6/19/26.
+//
 import SwiftUI
 
 struct StationGridView: View {
@@ -19,7 +25,6 @@ struct StationGridView: View {
         #endif
     }
     
-    // KORREKTUR: Typ zu [RadioStation] geändert
     private var targetStations: [RadioStation] {
         categoryType == .search ? apiClient.searchResults : apiClient.stations
     }
@@ -40,7 +45,6 @@ struct StationGridView: View {
                             playbackManager.play(station: station)
                         }) {
                             VStack {
-                                // KORREKTUR: station.favicon ist nun ein nicht-optionaler String
                                 AsyncImage(url: URL(string: station.favicon)) { phase in
                                     if let image = phase.image {
                                         image.resizable().aspectRatio(contentMode: .fit)

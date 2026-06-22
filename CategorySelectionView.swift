@@ -1,3 +1,9 @@
+//
+//  CategorySelectionView.swift
+//  Spectrum
+//
+//  Created by Farin  on 6/19/26.
+//
 import SwiftUI
 
 struct CategorySelectionView: View {
@@ -7,7 +13,6 @@ struct CategorySelectionView: View {
     }
 
     @Environment(RadioAPIClient.self) private var apiClient
-    // KORREKTUR: Als Optional deklariert, damit die View auch lädt, falls die Environment-Injizierung unvollständig ist
     @Environment(PlaybackManager.self) private var playbackManager: PlaybackManager?
     
     @State private var selectedTab: CategoryTab = .countries

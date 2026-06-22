@@ -1,3 +1,9 @@
+//
+//  Spectrum.swift
+//  Spectrum
+//
+//  Created by Farin  on 6/19/26.
+//
 import SwiftUI
 import AVFoundation
 
@@ -30,7 +36,6 @@ struct SpectrumApp: App {
                 .environment(playbackManager)
                 #if os(macOS)
                 .environment(updater)
-                // Öffnet das Info-Sheet, sobald der Menü-Button gedrückt wird
                 .sheet(isPresented: $showMacUpdateSheet) {
                     OnboardingView(isUpdate: true, updater: updater)
                 }
@@ -40,7 +45,6 @@ struct SpectrumApp: App {
             #if os(macOS)
             CommandGroup(after: .appInfo) {
                 Button("Nach Updates suchen...") {
-                    // Setzt den Status zurück, damit die Ladeanimation startet
                     updater.hasChecked = false
                     showMacUpdateSheet = true
                     Task {
@@ -51,5 +55,15 @@ struct SpectrumApp: App {
             }
             #endif
         }
+        
+        #if os(macOS)
+        WindowGroup(id: "full-player") {
+            FullPlayerView()
+                .environment(playbackManager)
+                .frame(minWidth: 380, idealWidth: 400, minHeight: 550, idealHeight: 600)
+        }
+        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
+        #endif
     }
 }

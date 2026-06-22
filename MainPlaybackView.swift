@@ -1,3 +1,9 @@
+//
+//  MainPlaybackView.swift
+//  Spectrum
+//
+//  Created by Farin  on 6/19/26.
+//
 import SwiftUI
 
 struct MainPlaybackView: View {
@@ -9,7 +15,6 @@ struct MainPlaybackView: View {
         VStack(spacing: 24) {
             Spacer()
             
-            // Cover/Favicon-Anzeige
             AsyncImage(url: URL(string: playbackManager.currentStation?.favicon ?? "")) { phase in
                 if let image = phase.image {
                     image
@@ -50,7 +55,6 @@ struct MainPlaybackView: View {
             
             Spacer()
             
-            // Steuerungselemente
             HStack(spacing: 40) {
                 Button(action: {
                     playbackManager.togglePlayback()
@@ -86,7 +90,6 @@ struct MainPlaybackView: View {
         }
     }
     
-    // Lädt das Bild im Hintergrund und stößt die Farbegewinnung an
     private func fetchColorsFromURL(_ urlString: String) {
         guard let url = URL(string: urlString) else { return }
         
@@ -101,7 +104,6 @@ struct MainPlaybackView: View {
         .resume()
     }
     
-    // Extrahiert Farben plattformunabhängig mittels SwiftUI ImageRenderer
     private func extractColors(from image: Image) -> [Color] {
         let viewToRender = image.frame(width: 10, height: 10)
         let renderer = ImageRenderer(content: viewToRender)
@@ -147,9 +149,6 @@ struct MainPlaybackView: View {
     }
 }
 
-// MARK: - Helper
-
-// Konvertiert die geladenen Data-Pakete im Hintergrund plattformspezifisch in ein SwiftUI Image
 func nativeImageConvert(data: Data) -> Image? {
     #if os(iOS)
     if let uiImage = UIImage(data: data) {

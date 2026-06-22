@@ -1,16 +1,21 @@
+//
+//  SettingsView.swift
+//  Spectrum
+//
+//  Created by Farin  on 6/19/26.
+//
 import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("highAudioQuality") private var highAudioQuality = true
     @AppStorage("onDeviceProcessing") private var onDeviceProcessing = true
-    @AppStorage("selectedTheme") private var selectedTheme = 0 // 0: System, 1: Hell, 2: Dunkel
+    @AppStorage("selectedTheme") private var selectedTheme = 0
     @AppStorage("autoCacheClear") private var autoCacheClear = false
     
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         Form {
-            // Sektion: Wiedergabe
             Section(header: Text("Playback")) {
                 Toggle(isOn: $highAudioQuality) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -39,35 +44,6 @@ struct SettingsView: View {
                 #endif
             }
             
-            // Sektion: Erscheinungsbild
-            Section(header: Text("Appearance")) {
-                Picker("Theme", selection: $selectedTheme) {
-                    Text("System").tag(0)
-                    Text("Light").tag(1)
-                    Text("Dark").tag(2)
-                }
-                #if os(iOS)
-                .pickerStyle(.navigationLink)
-                #endif
-            }
-            
-            // Sektion: Apple Intelligence
-            Section(header: Text("Apple Intelligence")) {
-                Toggle(isOn: $onDeviceProcessing) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("On-Device Processing")
-                            .font(.body)
-                        Text("Uses on-device models if available")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                #if os(macOS)
-                .toggleStyle(.checkbox)
-                #endif
-            }
-            
-            // Sektion: API & Open Source Lizenzen
             Section(header: Text("Radio Browser API")) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Radio Browser API")
@@ -92,7 +68,6 @@ struct SettingsView: View {
                 .padding(.vertical, 4)
             }
             
-            // Sektion: Allgemeines & Info
             Section(header: Text("General")) {
                 LabeledContent("Developer") {
                     Text("Farin Altenhöner")
@@ -121,8 +96,4 @@ struct SettingsView: View {
     }
 }
 
-#Preview {
-    NavigationStack {
-        SettingsView()
-    }
-}
+
