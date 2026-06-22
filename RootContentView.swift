@@ -17,10 +17,7 @@ struct RootContentView: View {
     @State private var isShowingFullPlayer = false
     
     @AppStorage("hasCompletedInitialOnboarding") private var hasCompletedInitialOnboarding = false
-    @AppStorage("lastSeenUpdateVersion") private var lastSeenUpdateVersion = ""
-    
     @State private var showInitialOnboarding = false
-    @State private var showUpdateOnboarding = false
     
     enum SidebarItem: Hashable {
         case favorites
@@ -74,14 +71,8 @@ struct RootContentView: View {
             }
             .sheet(isPresented: $showInitialOnboarding, onDismiss: {
                 hasCompletedInitialOnboarding = true
-                lastSeenUpdateVersion = OnboardingContent.currentAppVersion
             }) {
                 OnboardingView(isUpdate: false)
-            }
-            .sheet(isPresented: $showUpdateOnboarding, onDismiss: {
-                lastSeenUpdateVersion = OnboardingContent.currentAppVersion
-            }) {
-                OnboardingView(isUpdate: true)
             }
         } else {
             regularSplitView
@@ -104,14 +95,8 @@ struct RootContentView: View {
         }
         .sheet(isPresented: $showInitialOnboarding, onDismiss: {
             hasCompletedInitialOnboarding = true
-            lastSeenUpdateVersion = OnboardingContent.currentAppVersion
         }) {
             OnboardingView(isUpdate: false)
-        }
-        .sheet(isPresented: $showUpdateOnboarding, onDismiss: {
-            lastSeenUpdateVersion = OnboardingContent.currentAppVersion
-        }) {
-            OnboardingView(isUpdate: true)
         }
         #endif
     }
@@ -157,8 +142,6 @@ struct RootContentView: View {
     private func checkOnboardingState() {
         if !hasCompletedInitialOnboarding {
             showInitialOnboarding = true
-        } else if lastSeenUpdateVersion != OnboardingContent.currentAppVersion {
-            showUpdateOnboarding = true
         }
     }
 }

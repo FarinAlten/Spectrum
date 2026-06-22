@@ -6,6 +6,11 @@ struct SpectrumApp: App {
     @State private var apiClient = RadioAPIClient()
     @State private var playbackManager = PlaybackManager()
     
+    #if os(macOS)
+    @State private var updater = AppUpdater()
+    @State private var showMacUpdateSheet = false
+    #endif
+    
     init() {
         #if os(iOS)
         do {
@@ -23,17 +28,28 @@ struct SpectrumApp: App {
             RootContentView()
                 .environment(apiClient)
                 .environment(playbackManager)
+                #if os(macOS)
+                .environment(updater)
+                // Öffnet das Info-Sheet, sobald der Menü-Button gedrückt wird
+                .sheet(isPresented: $showMacUpdateSheet) {
+                    OnboardingView(isUpdate: true, updater: updater)
+                }
+                #endif
         }
-        
-        // Neues, separates Fenster für den Player unter macOS
-        #if os(macOS)
-        WindowGroup("Now Playing", id: "full-player") {
-            FullPlayerView()
-                .environment(playbackManager)
-                .frame(minWidth: 380, idealWidth: 400, minHeight: 550, idealHeight: 600)
+        .commands {
+            #if os(macOS)
+            CommandGroup(after: .appInfo) {
+                Button("Nach Updates suchen...") {
+                    // Setzt den Status zurück, damit die Ladeanimation startet
+                    updater.hasChecked = false
+                    showMacUpdateSheet = true
+                    Task {
+                        await updater.checkForUpdates()
+                    }
+                }
+                .keyboardShortcut("U", modifiers: .command)
+            }
+            #endif
         }
-        .windowResizability(.contentSize)
-        .windowStyle(.hiddenTitleBar)
-        #endif
     }
 }
