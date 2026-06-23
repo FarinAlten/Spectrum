@@ -19,7 +19,7 @@ Spectrum ist eine moderne, native Radio-App für macOS und iOS, entwickelt mit S
 
 ## Voraussetzungen
 
-- **iOS 27.0+** / **macOS 27.0+**
+- **iOS 17.0+** / **macOS 14.0+**
 
 ## Datenquelle & Lizenzhinweise
 
