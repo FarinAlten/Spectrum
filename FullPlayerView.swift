@@ -1,11 +1,38 @@
-//
-//  FullPlayerView.swift
-//  Spectrum
-//
-//  Created by Farin  on 6/19/26.
-//
 import SwiftUI
 import SwiftData
+import AVKit
+
+#if os(iOS)
+struct AirPlayPickerView: UIViewRepresentable {
+    func makeUIView(context: Context) -> AVRoutePickerView {
+        let pickerElement = AVRoutePickerView()
+        pickerElement.backgroundColor = .clear
+        pickerElement.activeTintColor = .systemBlue
+        pickerElement.tintColor = .clear
+        return pickerElement
+    }
+    
+    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
+}
+#elseif os(macOS)
+struct AirPlayPickerView: NSViewRepresentable {
+    func makeNSView(context: Context) -> AVRoutePickerView {
+        let pickerElement = AVRoutePickerView()
+        if let button = pickerElement.subviews.first(where: { $0 is NSButton }) as? NSButton {
+            button.bezelStyle = .inline
+            button.isBordered = false
+            button.wantsLayer = true
+            button.layer?.backgroundColor = .clear
+            button.imagePosition = .imageOnly
+        }
+        pickerElement.setRoutePickerButtonColor(.clear, for: .normal)
+        pickerElement.setRoutePickerButtonColor(.clear, for: .active)
+        return pickerElement
+    }
+    
+    func updateNSView(_ nsView: AVRoutePickerView, context: Context) {}
+}
+#endif
 
 struct FullPlayerView: View {
     @Environment(PlaybackManager.self) private var playbackManager
@@ -56,16 +83,6 @@ struct FullPlayerView: View {
                     #endif
                     
                     Spacer()
-                    
-                    Button(action: toggleFavoriteStatus) {
-                        Image(systemName: isCurrentStationFavorite ? "star.fill" : "star")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(isCurrentStationFavorite ? .yellow : .white.opacity(0.8))
-                            .padding(10)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 20)
@@ -117,7 +134,26 @@ struct FullPlayerView: View {
                 
                 Spacer(minLength: 40)
                 
-                HStack {
+                HStack(spacing: 32) {
+                    Image(systemName: "airplayaudio")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white.opacity(0.8))
+                        .padding(10)
+                        .background {
+                            ZStack {
+                                Circle()
+                                    .fill(.white.opacity(0.08))
+                                Circle()
+                                    .fill(.ultraThinMaterial)
+                                Circle()
+                                    .stroke(LinearGradient(colors: [.white.opacity(0.25), .clear, .black.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5)
+                            }
+                            .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
+                        }
+                        .overlay {
+                            AirPlayPickerView()
+                        }
+                    
                     Button(action: {
                         playbackManager.togglePlayback()
                     }) {
@@ -128,6 +164,25 @@ struct FullPlayerView: View {
                     }
                     .buttonStyle(.plain)
                     .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 6)
+                    
+                    Button(action: toggleFavoriteStatus) {
+                        Image(systemName: isCurrentStationFavorite ? "star.fill" : "star")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(isCurrentStationFavorite ? .yellow : .white.opacity(0.8))
+                            .padding(10)
+                            .background {
+                                ZStack {
+                                    Circle()
+                                        .fill(.white.opacity(0.08))
+                                    Circle()
+                                        .fill(.ultraThinMaterial)
+                                    Circle()
+                                        .stroke(LinearGradient(colors: [.white.opacity(0.25), .clear, .black.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5)
+                                }
+                                .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
+                            }
+                    }
+                    .buttonStyle(.plain)
                 }
                 
                 Spacer(minLength: 40)
@@ -155,3 +210,11 @@ struct FullPlayerView: View {
         }
     }
 }
+
+#if os(macOS)
+extension NSColor {
+    static var secondarySystemBackground: NSColor {
+        return NSColor.windowBackgroundColor
+    }
+}
+#endif

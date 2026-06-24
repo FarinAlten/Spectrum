@@ -1,9 +1,3 @@
-//
-//  StatioGridView.swift
-//  Spectrum
-//
-//  Created by Farin  on 6/19/26.
-//
 import SwiftUI
 
 struct StationGridView: View {
@@ -12,6 +6,8 @@ struct StationGridView: View {
     
     @Environment(RadioAPIClient.self) private var apiClient
     @Environment(PlaybackManager.self) private var playbackManager
+    
+    @State private var searchText: String = ""
     
     private let columns = [
         GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 16)
@@ -29,18 +25,26 @@ struct StationGridView: View {
         categoryType == .search ? apiClient.searchResults : apiClient.stations
     }
     
+    private var filteredStations: [RadioStation] {
+        if searchText.isEmpty {
+            return targetStations
+        } else {
+            return targetStations.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        }
+    }
+    
     var body: some View {
         ScrollView {
             if apiClient.isLoading {
                 ProgressView()
                     .padding(.top, 40)
-            } else if targetStations.isEmpty {
+            } else if filteredStations.isEmpty {
                 Text(LocalizedStringKey("no_stations_found"))
                     .foregroundColor(.secondary)
                     .padding(.top, 40)
             } else {
                 LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(targetStations) { station in
+                    ForEach(filteredStations) { station in
                         Button(action: {
                             playbackManager.play(station: station)
                         }) {
@@ -74,6 +78,7 @@ struct StationGridView: View {
             }
         }
         .navigationTitle(categoryName)
+        .searchable(text: $searchText, placement: .automatic, prompt: Text("Sender in \(categoryName) suchen"))
         .task {
             if categoryType != .search {
                 await apiClient.fetchStations(for: categoryName, type: categoryType)

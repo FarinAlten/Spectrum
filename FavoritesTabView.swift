@@ -1,9 +1,3 @@
-//
-//  FavriteTabView.swift
-//  Spectrum
-//
-//  Created by Farin  on 6/19/26.
-//
 import SwiftUI
 import SwiftData
 
@@ -12,6 +6,8 @@ struct FavoritesTabView: View {
     @Environment(\.modelContext) private var modelContext
     
     @Query(sort: \FavoriteStation.name) private var favoriteStations: [FavoriteStation]
+    
+    @State private var isShowingSettings = false
     
     var body: some View {
         NavigationStack {
@@ -36,21 +32,27 @@ struct FavoritesTabView: View {
                             playbackManager.play(station: stationToPlay)
                         }) {
                             HStack(spacing: 12) {
-                                AsyncImage(url: URL(string: favorite.favicon)) { image in
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                } placeholder: {
-                                    Image(systemName: "radio")
-                                        .foregroundColor(.secondary)
+                                AsyncImage(url: URL(string: favorite.favicon)) { phase in
+                                    if let image = phase.image {
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                    } else {
+                                        ZStack {
+                                            Color.white.opacity(0.05)
+                                            Image(systemName: "radio")
+                                                .font(.system(size: 14))
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
                                 }
-                                .frame(width: 40, height: 40)
+                                .frame(width: 36, height: 36)
                                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                                 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(favorite.name)
-                                        .font(.body)
-                                        .fontWeight(.semibold)
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.primary)
                                     
                                     if !favorite.tags.isEmpty {
                                         Text(favorite.tags)
@@ -82,6 +84,26 @@ struct FavoritesTabView: View {
                 }
             }
             .navigationTitle("Favoriten")
+            .toolbar {
+                ToolbarItem(placement: leadingPlacement) {
+                    Button(action: { isShowingSettings = true }) {
+                        Label("Einstellungen", systemImage: "gearshape")
+                    }
+                }
+            }
+            .sheet(isPresented: $isShowingSettings) {
+                NavigationStack {
+                    SettingsView()
+                }
+            }
         }
+    }
+    
+    private var leadingPlacement: ToolbarItemPlacement {
+        #if os(iOS)
+        return .navigationBarLeading
+        #else
+        return .navigation
+        #endif
     }
 }

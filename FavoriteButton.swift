@@ -1,9 +1,3 @@
-//
-//  FavoriteButton.swift
-//  Spectrum
-//
-//  Created by Farin  on 6/19/26.
-//
 import SwiftUI
 import SwiftData
 
@@ -13,7 +7,6 @@ struct FavoriteButton: View {
     @Query private var favorites: [FavoriteStation]
     
     private var isFavorite: Bool {
-        // Sicherer String-Vergleich der IDs
         favorites.contains { String($0.id) == String(station.id) }
     }
     

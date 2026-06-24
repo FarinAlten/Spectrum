@@ -96,7 +96,6 @@
 				6A958FA72FDF23CC001EAB43 /* MiniPlayerView.swift */,
 				6A34282A2FE98C5600288686 /* OnboardingView.swift */,
 				6A958FAD2FDF26F2001EAB43 /* Localizable.xcstrings */,
-				6A958FA32FDF134E001EAB43 /* StationGridView.swift */,
 				6A958F972FDF113D001EAB43 /* PlaybackManager.swift */,
 				6ABB07582FDF519E00780542 /* Station.swift */,
 				6A958F992FDF1151001EAB43 /* LiquidGlassModifier.swift */,
@@ -109,6 +108,7 @@
 				6A34282E2FE98F1E00288686 /* AppUpdater.swift */,
 				6A958FAF2FDF3F9F001EAB43 /* SwiftData.swift */,
 				6A958FAB2FDF25D1001EAB43 /* SettingsView.swift */,
+				6A958FA32FDF134E001EAB43 /* StationGridView.swift */,
 				6A5BD67D2FE597ED00185FF3 /* StationGroup.swift */,
 				6A958F9F2FDF1195001EAB43 /* SpectrumApp.swift */,
 				6A958FB72FDF42AE001EAB43 /* AppIcon.icon */,
@@ -377,7 +377,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
-				CURRENT_PROJECT_VERSION = 334;
+				CURRENT_PROJECT_VERSION = 342;
 				DEVELOPMENT_TEAM = 7423MMP2HG;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -415,7 +415,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.farinaltenhoener.Spectrum.radio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -449,7 +449,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
-				CURRENT_PROJECT_VERSION = 334;
+				CURRENT_PROJECT_VERSION = 342;
 				DEVELOPMENT_TEAM = 7423MMP2HG;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -490,7 +490,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.farinaltenhoener.Spectrum.radio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;

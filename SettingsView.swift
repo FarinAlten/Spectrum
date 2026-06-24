@@ -1,9 +1,3 @@
-//
-//  SettingsView.swift
-//  Spectrum
-//
-//  Created by Farin  on 6/19/26.
-//
 import SwiftUI
 
 struct SettingsView: View {
@@ -13,6 +7,12 @@ struct SettingsView: View {
     @AppStorage("autoCacheClear") private var autoCacheClear = false
     
     @Environment(\.dismiss) private var dismiss
+    
+    private var appVersionString: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "\(version) (\(build))"
+    }
     
     var body: some View {
         Form {
@@ -75,14 +75,13 @@ struct SettingsView: View {
                 }
                 
                 LabeledContent("Version") {
-                    Text("1.0.0 ")
+                    Text(appVersionString)
                         .foregroundColor(.secondary)
                 }
             }
         }
         .formStyle(.grouped)
         .navigationTitle("Settings")
-        // Verhindert das Quetschen auf kleinen Bildschirmen, erlaubt Skalierung nach oben
         .frame(minWidth: 280, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity)
         .toolbar {
             #if os(iOS)
@@ -95,5 +94,3 @@ struct SettingsView: View {
         }
     }
 }
-
-

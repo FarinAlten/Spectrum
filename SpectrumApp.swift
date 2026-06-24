@@ -1,11 +1,6 @@
-//
-//  Spectrum.swift
-//  Spectrum
-//
-//  Created by Farin  on 6/19/26.
-//
 import SwiftUI
 import AVFoundation
+import SwiftData
 
 @main
 struct SpectrumApp: App {
@@ -41,6 +36,7 @@ struct SpectrumApp: App {
                 }
                 #endif
         }
+        .modelContainer(for: FavoriteStation.self)
         .commands {
             #if os(macOS)
             CommandGroup(after: .appInfo) {
@@ -60,6 +56,7 @@ struct SpectrumApp: App {
         WindowGroup(id: "full-player") {
             FullPlayerView()
                 .environment(playbackManager)
+                .modelContainer(for: FavoriteStation.self)
                 .frame(minWidth: 380, idealWidth: 400, minHeight: 550, idealHeight: 600)
         }
         .windowResizability(.contentSize)

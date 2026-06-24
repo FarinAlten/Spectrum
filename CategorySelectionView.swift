@@ -1,15 +1,24 @@
-//
-//  CategorySelectionView.swift
-//  Spectrum
-//
-//  Created by Farin  on 6/19/26.
-//
 import SwiftUI
 
+struct StationGroup: Identifiable, Hashable {
+    var id: String { mainStation.id }
+    let mainStation: RadioStation
+    var subStations: [RadioStation]
+}
+
 struct CategorySelectionView: View {
-    enum CategoryTab {
-        case countries
-        case genres
+    enum CategoryTab: String, CaseIterable, Identifiable {
+        case countries = "Länder"
+        case genres = "Genres"
+        
+        var id: Self { self }
+        
+        var icon: String {
+            switch self {
+            case .countries: return "globe"
+            case .genres: return "music.note"
+            }
+        }
     }
 
     @Environment(RadioAPIClient.self) private var apiClient
@@ -21,9 +30,37 @@ struct CategorySelectionView: View {
     @State private var searchedGroups: [StationGroup] = []
     @State private var isSearchingAPI = false
     
+    private var filteredCountries: [String] {
+        apiClient.countries.filter { $0.localizedCaseInsensitiveContains(searchText) }
+    }
+    
+    private var filteredGenres: [String] {
+        apiClient.genres.filter { $0.localizedCaseInsensitiveContains(searchText) }
+    }
+    
     var body: some View {
         List {
             if !searchText.isEmpty {
+                if !filteredCountries.isEmpty {
+                    Section("Länder") {
+                        ForEach(filteredCountries, id: \.self) { country in
+                            NavigationLink(value: SelectedCategory(name: country, type: .country)) {
+                                Label(country, systemImage: "globe")
+                            }
+                        }
+                    }
+                }
+                
+                if !filteredGenres.isEmpty {
+                    Section("Genres") {
+                        ForEach(filteredGenres, id: \.self) { genre in
+                            NavigationLink(value: SelectedCategory(name: genre, type: .genre)) {
+                                Label(genre, systemImage: "music.note")
+                            }
+                        }
+                    }
+                }
+                
                 Section("Sender-Ergebnisse") {
                     if isSearchingAPI {
                         HStack {
@@ -31,7 +68,7 @@ struct CategorySelectionView: View {
                             ProgressView("Suche Sender...")
                             Spacer()
                         }
-                    } else if searchedGroups.isEmpty {
+                    } else if searchedGroups.isEmpty && filteredCountries.isEmpty && filteredGenres.isEmpty {
                         ContentUnavailableView.search(text: searchText)
                     } else {
                         ForEach(searchedGroups) { group in
@@ -87,12 +124,13 @@ struct CategorySelectionView: View {
             
             ToolbarItem(placement: trailingPlacement) {
                 Menu {
-                    Button(action: { selectedTab = .countries }) {
-                        Label("Länder", systemImage: "globe")
+                    Picker("Kategorie wechseln", selection: $selectedTab) {
+                        ForEach(CategoryTab.allCases) { tab in
+                            Label(tab.rawValue, systemImage: tab.icon)
+                                .tag(tab)
+                        }
                     }
-                    Button(action: { selectedTab = .genres }) {
-                        Label("Genres", systemImage: "music.note")
-                    }
+                    .pickerStyle(.inline)
                 } label: {
                     Image(systemName: selectedTab == .countries ? "globe" : "music.note")
                 }
@@ -116,8 +154,10 @@ struct CategorySelectionView: View {
                 .background(backgroundColor)
             }
         }
-        .task {
-            await loadData()
+        .onAppear {
+            Task {
+                await loadData()
+            }
         }
     }
     
@@ -269,14 +309,6 @@ struct CategorySelectionView: View {
     }
     
     private func loadData() async {
-        if apiClient.countries.isEmpty && apiClient.genres.isEmpty {
-            await apiClient.fetchDiscoverData()
-        }
+        await apiClient.fetchDiscoverData()
     }
-}
-
-struct StationGroup: Identifiable, Hashable {
-    var id: String { mainStation.id }
-    let mainStation: RadioStation
-    var subStations: [RadioStation]
 }
