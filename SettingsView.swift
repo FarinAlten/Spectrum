@@ -44,7 +44,7 @@ struct SettingsView: View {
                 #endif
             }
             
-            Section(header: Text("Radio Browser API")) {
+            Section(header: Text("Open Source")) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Radio Browser API")
                         .font(.body)

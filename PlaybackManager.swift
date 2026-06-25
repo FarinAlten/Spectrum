@@ -1,15 +1,11 @@
-//
-//  PlaybackManager.swift
-//  Spectrum
-//
-//  Created by Farin  on 6/19/26.
-//
 import Foundation
 import AVFoundation
 import MediaPlayer
 
 #if os(iOS)
 import UIKit
+#elseif os(macOS)
+import AppKit
 #endif
 
 private let sharedAudioPlayer = AVPlayer()
@@ -68,14 +64,11 @@ final class PlaybackManager {
         
         if !station.favicon.isEmpty, let url = URL(string: station.favicon) {
             Task {
-                #if os(iOS)
-                if let image = await downloadFavicon(from: url) {
-                    let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                if let artwork = await fetchArtwork(from: url) {
                     await MainActor.run {
                         self.updateNowPlaying(station: station, artwork: artwork)
                     }
                 }
-                #endif
             }
         }
     }
@@ -119,17 +112,24 @@ final class PlaybackManager {
         }
     }
     
-    #if os(iOS)
-    private func downloadFavicon(from url: URL) async -> UIImage? {
+    private func fetchArtwork(from url: URL) async -> MPMediaItemArtwork? {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            return UIImage(data: data)
+            
+            #if os(iOS)
+            if let image = UIImage(data: data) {
+                return MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+            }
+            #elseif os(macOS)
+            if let image = NSImage(data: data) {
+                return MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+            }
+            #endif
         } catch {
             print("Fehler beim Laden des Kontrollzentrum-Covers: \(error)")
-            return nil
         }
+        return nil
     }
-    #endif
     
     private func setupRemoteCommandCenter() {
         let commandCenter = MPRemoteCommandCenter.shared()
