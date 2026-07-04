@@ -9,34 +9,51 @@
 /* Begin PBXBuildFile section */
 		6A34282B2FE98C5D00288686 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A34282A2FE98C5600288686 /* OnboardingView.swift */; };
 		6A34282F2FE98F2300288686 /* AppUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A34282E2FE98F1E00288686 /* AppUpdater.swift */; };
-		6A385D932FF918D500178FA2 /* SpectrumCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A385D922FF918D000178FA2 /* SpectrumCore.swift */; };
-		6A385D952FF91A2900178FA2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A385D942FF91A2400178FA2 /* ContentView.swift */; };
-		6A385D972FF91A4A00178FA2 /* PlaybackPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A385D962FF91A4400178FA2 /* PlaybackPlayerView.swift */; };
+		6A63EB982FE3CDDC006264B3 /* FavoritesTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A63EB972FE3CDD2006264B3 /* FavoritesTabView.swift */; };
+		6A958F962FDF1131001EAB43 /* RadioAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958F952FDF112B001EAB43 /* RadioAPIClient.swift */; };
+		6A958F982FDF1149001EAB43 /* PlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958F972FDF113D001EAB43 /* PlaybackManager.swift */; };
 		6A958F9A2FDF1160001EAB43 /* LiquidGlassModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958F992FDF1151001EAB43 /* LiquidGlassModifier.swift */; };
 		6A958F9C2FDF1178001EAB43 /* MainPlaybackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958F9B2FDF116E001EAB43 /* MainPlaybackView.swift */; };
 		6A958F9E2FDF1189001EAB43 /* IntelligenceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958F9D2FDF1183001EAB43 /* IntelligenceManager.swift */; };
 		6A958FA02FDF1198001EAB43 /* SpectrumApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958F9F2FDF1195001EAB43 /* SpectrumApp.swift */; };
+		6A958FA22FDF1342001EAB43 /* CategorySelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958FA12FDF1336001EAB43 /* CategorySelectionView.swift */; };
+		6A958FA42FDF1356001EAB43 /* StationGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958FA32FDF134E001EAB43 /* StationGridView.swift */; };
+		6A958FA82FDF23D7001EAB43 /* MiniPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958FA72FDF23CC001EAB43 /* MiniPlayerView.swift */; };
+		6A958FAA2FDF2402001EAB43 /* RootContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958FA92FDF23FC001EAB43 /* RootContentView.swift */; };
 		6A958FAC2FDF25D5001EAB43 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958FAB2FDF25D1001EAB43 /* SettingsView.swift */; };
 		6A958FAE2FDF26F2001EAB43 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 6A958FAD2FDF26F2001EAB43 /* Localizable.xcstrings */; };
+		6A958FB02FDF3FA3001EAB43 /* SwiftData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958FAF2FDF3F9F001EAB43 /* SwiftData.swift */; };
+		6A958FB42FDF4031001EAB43 /* FavoriteButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958FB32FDF4029001EAB43 /* FavoriteButton.swift */; };
 		6A958FB82FDF42AE001EAB43 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 6A958FB72FDF42AE001EAB43 /* AppIcon.icon */; };
 		6A958FBE2FDF4D5F001EAB43 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6A958FBD2FDF4D5F001EAB43 /* Assets.xcassets */; };
+		6ABB07592FDF51A200780542 /* Station.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ABB07582FDF519E00780542 /* Station.swift */; };
+		6ABB075B2FDF54E100780542 /* FullPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ABB075A2FDF54DD00780542 /* FullPlayerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* Spectrum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Spectrum.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6A34282A2FE98C5600288686 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		6A34282E2FE98F1E00288686 /* AppUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdater.swift; sourceTree = "<group>"; };
-		6A385D922FF918D000178FA2 /* SpectrumCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpectrumCore.swift; sourceTree = "<group>"; };
-		6A385D942FF91A2400178FA2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		6A385D962FF91A4400178FA2 /* PlaybackPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackPlayerView.swift; sourceTree = "<group>"; };
+		6A5BD67D2FE597ED00185FF3 /* StationGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationGroup.swift; sourceTree = "<group>"; };
+		6A63EB972FE3CDD2006264B3 /* FavoritesTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesTabView.swift; sourceTree = "<group>"; };
+		6A958F952FDF112B001EAB43 /* RadioAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadioAPIClient.swift; sourceTree = "<group>"; };
+		6A958F972FDF113D001EAB43 /* PlaybackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackManager.swift; sourceTree = "<group>"; };
 		6A958F992FDF1151001EAB43 /* LiquidGlassModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlassModifier.swift; sourceTree = "<group>"; };
 		6A958F9B2FDF116E001EAB43 /* MainPlaybackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPlaybackView.swift; sourceTree = "<group>"; };
 		6A958F9D2FDF1183001EAB43 /* IntelligenceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceManager.swift; sourceTree = "<group>"; };
 		6A958F9F2FDF1195001EAB43 /* SpectrumApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpectrumApp.swift; sourceTree = "<group>"; };
+		6A958FA12FDF1336001EAB43 /* CategorySelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategorySelectionView.swift; sourceTree = "<group>"; };
+		6A958FA32FDF134E001EAB43 /* StationGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationGridView.swift; sourceTree = "<group>"; };
+		6A958FA72FDF23CC001EAB43 /* MiniPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayerView.swift; sourceTree = "<group>"; };
+		6A958FA92FDF23FC001EAB43 /* RootContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootContentView.swift; sourceTree = "<group>"; };
 		6A958FAB2FDF25D1001EAB43 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		6A958FAD2FDF26F2001EAB43 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		6A958FAF2FDF3F9F001EAB43 /* SwiftData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftData.swift; sourceTree = "<group>"; };
+		6A958FB32FDF4029001EAB43 /* FavoriteButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteButton.swift; sourceTree = "<group>"; };
 		6A958FB72FDF42AE001EAB43 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		6A958FBD2FDF4D5F001EAB43 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6ABB07582FDF519E00780542 /* Station.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Station.swift; sourceTree = "<group>"; };
+		6ABB075A2FDF54DD00780542 /* FullPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullPlayerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -74,16 +91,25 @@
 			children = (
 				000000000000000000000010 /* Spectrum */,
 				000000000000000000000020 /* Products */,
-				6A34282E2FE98F1E00288686 /* AppUpdater.swift */,
+				6A958F952FDF112B001EAB43 /* RadioAPIClient.swift */,
+				6A958FA12FDF1336001EAB43 /* CategorySelectionView.swift */,
+				6A958FA72FDF23CC001EAB43 /* MiniPlayerView.swift */,
 				6A34282A2FE98C5600288686 /* OnboardingView.swift */,
 				6A958FAD2FDF26F2001EAB43 /* Localizable.xcstrings */,
+				6A958F972FDF113D001EAB43 /* PlaybackManager.swift */,
+				6ABB07582FDF519E00780542 /* Station.swift */,
 				6A958F992FDF1151001EAB43 /* LiquidGlassModifier.swift */,
 				6A958F9B2FDF116E001EAB43 /* MainPlaybackView.swift */,
-				6A385D942FF91A2400178FA2 /* ContentView.swift */,
-				6A385D962FF91A4400178FA2 /* PlaybackPlayerView.swift */,
 				6A958F9D2FDF1183001EAB43 /* IntelligenceManager.swift */,
-				6A385D922FF918D000178FA2 /* SpectrumCore.swift */,
+				6A958FA92FDF23FC001EAB43 /* RootContentView.swift */,
+				6A63EB972FE3CDD2006264B3 /* FavoritesTabView.swift */,
+				6A958FB32FDF4029001EAB43 /* FavoriteButton.swift */,
+				6ABB075A2FDF54DD00780542 /* FullPlayerView.swift */,
+				6A34282E2FE98F1E00288686 /* AppUpdater.swift */,
+				6A958FAF2FDF3F9F001EAB43 /* SwiftData.swift */,
 				6A958FAB2FDF25D1001EAB43 /* SettingsView.swift */,
+				6A958FA32FDF134E001EAB43 /* StationGridView.swift */,
+				6A5BD67D2FE597ED00185FF3 /* StationGroup.swift */,
 				6A958F9F2FDF1195001EAB43 /* SpectrumApp.swift */,
 				6A958FB72FDF42AE001EAB43 /* AppIcon.icon */,
 				6A958FBD2FDF4D5F001EAB43 /* Assets.xcassets */,
@@ -172,14 +198,22 @@
 			files = (
 				6A958F9C2FDF1178001EAB43 /* MainPlaybackView.swift in Sources */,
 				6A958F9A2FDF1160001EAB43 /* LiquidGlassModifier.swift in Sources */,
-				6A385D972FF91A4A00178FA2 /* PlaybackPlayerView.swift in Sources */,
-				6A385D952FF91A2900178FA2 /* ContentView.swift in Sources */,
 				6A958FA02FDF1198001EAB43 /* SpectrumApp.swift in Sources */,
 				6A34282B2FE98C5D00288686 /* OnboardingView.swift in Sources */,
-				6A385D932FF918D500178FA2 /* SpectrumCore.swift in Sources */,
+				6A958FB42FDF4031001EAB43 /* FavoriteButton.swift in Sources */,
+				6A958FA42FDF1356001EAB43 /* StationGridView.swift in Sources */,
+				6A958F982FDF1149001EAB43 /* PlaybackManager.swift in Sources */,
+				6A63EB982FE3CDDC006264B3 /* FavoritesTabView.swift in Sources */,
+				6A958FA22FDF1342001EAB43 /* CategorySelectionView.swift in Sources */,
+				6A958F962FDF1131001EAB43 /* RadioAPIClient.swift in Sources */,
+				6ABB07592FDF51A200780542 /* Station.swift in Sources */,
+				6ABB075B2FDF54E100780542 /* FullPlayerView.swift in Sources */,
+				6A958FB02FDF3FA3001EAB43 /* SwiftData.swift in Sources */,
+				6A958FA82FDF23D7001EAB43 /* MiniPlayerView.swift in Sources */,
 				6A34282F2FE98F2300288686 /* AppUpdater.swift in Sources */,
 				6A958FAC2FDF25D5001EAB43 /* SettingsView.swift in Sources */,
 				6A958F9E2FDF1189001EAB43 /* IntelligenceManager.swift in Sources */,
+				6A958FAA2FDF2402001EAB43 /* RootContentView.swift in Sources */,
 			);
 		};
 /* End PBXSourcesBuildPhase section */
@@ -381,7 +415,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
-				MARKETING_VERSION = 1.0.4;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.farinaltenhoener.Spectrum.radio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -456,7 +490,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
-				MARKETING_VERSION = 1.0.4;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.farinaltenhoener.Spectrum.radio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
