@@ -26,7 +26,7 @@ struct SpectrumApp: App {
     
     var body: some Scene {
         WindowGroup {
-            RootContentView()
+            ContentView()
                 .environment(apiClient)
                 .environment(playbackManager)
                 #if os(macOS)
