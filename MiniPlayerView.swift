@@ -2,7 +2,7 @@
 //  MiniPlayerView.swift
 //  Spectrum
 //
-//  Created by Farin  on 6/19/26.
+//  Created by Farin on 6/19/26.
 //
 import SwiftUI
 
@@ -12,109 +12,81 @@ struct MiniPlayerView: View {
     
     var body: some View {
         HStack(spacing: 14) {
-            Button(action: action) {
-                HStack(spacing: 14) {
-                    AsyncImage(url: URL(string: playbackManager.currentStation?.favicon ?? "")) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } placeholder: {
-                        ZStack {
-                            Color.white.opacity(0.05)
-                            Image(systemName: "radio")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                        }
+            // Linker Bereich: Album-Art/Logo & Senderelemente
+            HStack(spacing: 14) {
+                AsyncImage(url: URL(string: playbackManager.currentStation?.favicon ?? "")) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    ZStack {
+                        Color.primary.opacity(0.05)
+                        Image(systemName: "radio")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
                     }
-                    .frame(width: 36, height: 36)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
-                    )
+                }
+                .frame(width: 38, height: 38)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    // Zeige den Sendernamen oder einen Standard-Platzhaltertext
+                    Text(playbackManager.currentStation?.name ?? "Kein Sender ausgewählt")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
                     
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(playbackManager.currentStation?.name ?? String(localized: "Player_Status_Pause"))
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.primary)
+                    if playbackManager.isLoadingStation {
+                        Text("Wird geladen...")
+                            .font(.system(size: 11))
+                            .foregroundColor(.accentColor)
                             .lineLimit(1)
-                        
-                        Text(playbackManager.isPlaying ? String(localized: "Player_Status_Live") : " ")
+                    } else {
+                        Text(playbackManager.isPlaying ? String(localized: "Player_Status_Live") : "Bereit")
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                     }
                 }
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
             
             Spacer()
-
-            HStack(spacing: 24) {
-                Button(action: { playbackManager.togglePlayback() }) {
+            
+            // Rechter Bereich: Play/Pause Button oder Lade-Spinner
+            if playbackManager.isLoadingStation {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: 28, height: 28)
+            } else {
+                Button(action: {
+                    if playbackManager.currentStation != nil {
+                        playbackManager.togglePlayback()
+                    }
+                }) {
                     Image(systemName: playbackManager.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.primary)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(playbackManager.currentStation == nil ? .secondary.opacity(0.5) : .primary)
+                        .frame(width: 28, height: 28)
+                        .background(Color.primary.opacity(0.06))
+                        .clipShape(Circle())
                 }
-                .buttonStyle(LiquidGlassButtonStyle())
-                
-                Button(action: {}) {
-                    Image(systemName: "forward.fill")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(LiquidGlassButtonStyle())
-                .opacity(0.4)
+                .buttonStyle(.plain)
+                .disabled(playbackManager.currentStation == nil)
             }
-            .padding(.trailing, 6)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background {
-            ZStack {
-                Color.white.opacity(0.01)
-                    .background(.ultraThinMaterial)
-                    .scaleEffect(1.02)
-                
-                Color.white.opacity(0.06)
-                
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.white.opacity(0.25),
-                        Color.white.opacity(0.03),
-                        Color.clear
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            // Das detaillierte Sheet öffnet sich nur, wenn auch wirklich ein Sender aktiv ist
+            if playbackManager.currentStation != nil {
+                action()
             }
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.white.opacity(0.35),
-                                Color.white.opacity(0.1),
-                                Color.black.opacity(0.05)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.5
-                    )
-            )
-            .shadow(color: Color.black.opacity(0.06), radius: 16, x: 0, y: 8)
         }
-    }
-}
-
-struct LiquidGlassButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
-            .opacity(configuration.isPressed ? 0.7 : 1.0)
-            .animation(.interactiveSpring(response: 0.25, dampingFraction: 0.65), value: configuration.isPressed)
+        .background(.bar)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 4)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
     }
 }

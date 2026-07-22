@@ -1,0 +1,26 @@
+{
+  "name": "My Source",
+  "apps": [
+    {
+      "name": "Spectrum",
+      "bundleIdentifier": "com.farinaltenhoener.Spectrum.radio",
+      "developerName": "Farin Altenhöner",
+      "subtitle": "Spectrum Radio App",
+      "localizedDescription": "Spectrum Radio App",
+      "iconURL": "",
+      "versions": [
+        {
+          "version": "1.0",
+          "buildVersion": "1",
+          "date": "2026-07-12T14:52:05Z",
+          "downloadURL": "",
+          "size": 0
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {}
+      }
+    }
+  ]
+}

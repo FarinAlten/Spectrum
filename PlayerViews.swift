@@ -7,8 +7,14 @@ struct AirPlayPickerView: UIViewRepresentable {
     func makeUIView(context: Context) -> AVRoutePickerView {
         let pickerElement = AVRoutePickerView()
         pickerElement.backgroundColor = .clear
+        
+        // Normaler Zustand: Elegantes, leicht transparentes Weiß
+        pickerElement.tintColor = .white.withAlphaComponent(0.7)
+        
+        // Aktiver Zustand: Das Icon leuchtet blau, wenn AirPlay läuft
         pickerElement.activeTintColor = .systemBlue
-        pickerElement.tintColor = .clear
+        
+        pickerElement.prioritizesVideoDevices = false
         return pickerElement
     }
     
@@ -69,6 +75,7 @@ struct FullPlayerView: View {
             .ignoresSafeArea()
             
             VStack(spacing: 0) {
+                // Obere Leiste mit Schließen-Button links und Teilen-Button rechts
                 HStack {
                     #if os(iOS)
                     Button(action: { dismiss() }) {
@@ -83,6 +90,27 @@ struct FullPlayerView: View {
                     #endif
                     
                     Spacer()
+                    
+                    if let shareURL = playbackManager.currentStation?.shareURL {
+                        ShareLink(item: shareURL) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white.opacity(0.8))
+                                .padding(10)
+                                .background {
+                                    ZStack {
+                                        Circle()
+                                            .fill(.white.opacity(0.08))
+                                        Circle()
+                                            .fill(.ultraThinMaterial)
+                                        Circle()
+                                            .stroke(LinearGradient(colors: [.white.opacity(0.25), .clear, .black.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5)
+                                    }
+                                    .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
+                                }
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 20)
@@ -134,10 +162,11 @@ struct FullPlayerView: View {
                 
                 Spacer(minLength: 40)
                 
+                // Untere Kontrollleiste mit AirPlay, Play/Pause und Favoriten-Button
                 HStack(spacing: 32) {
-                    Image(systemName: "airplayaudio")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white.opacity(0.8))
+                    // AirPlay Button mit automatischem Farbwechsel bei Aktivität
+                    AirPlayPickerView()
+                        .frame(width: 22, height: 22)
                         .padding(10)
                         .background {
                             ZStack {
@@ -146,14 +175,19 @@ struct FullPlayerView: View {
                                 Circle()
                                     .fill(.ultraThinMaterial)
                                 Circle()
-                                    .stroke(LinearGradient(colors: [.white.opacity(0.25), .clear, .black.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [.white.opacity(0.25), .clear, .black.opacity(0.15)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 0.5
+                                    )
                             }
                             .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
                         }
-                        .overlay {
-                            AirPlayPickerView()
-                        }
                     
+                    // Play / Pause Button
                     Button(action: {
                         playbackManager.togglePlayback()
                     }) {
@@ -165,6 +199,7 @@ struct FullPlayerView: View {
                     .buttonStyle(.plain)
                     .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 6)
                     
+                    // Favoriten Button
                     Button(action: toggleFavoriteStatus) {
                         Image(systemName: isCurrentStationFavorite ? "star.fill" : "star")
                             .font(.system(size: 16, weight: .bold))
@@ -177,7 +212,14 @@ struct FullPlayerView: View {
                                     Circle()
                                         .fill(.ultraThinMaterial)
                                     Circle()
-                                        .stroke(LinearGradient(colors: [.white.opacity(0.25), .clear, .black.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [.white.opacity(0.25), .clear, .black.opacity(0.15)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 0.5
+                                        )
                                 }
                                 .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
                             }
@@ -193,6 +235,14 @@ struct FullPlayerView: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
         #endif
+        .userActivity("com.spectrum.radio.playback", isActive: playbackManager.currentStation != nil) { activity in
+            guard let station = playbackManager.currentStation else { return }
+            activity.title = "Spectrum: \(station.name)"
+            activity.isEligibleForHandoff = true
+            if let urlString = station.shareURL?.absoluteString {
+                activity.userInfo = ["stationURL": urlString]
+            }
+        }
     }
     
     private func toggleFavoriteStatus() {

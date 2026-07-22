@@ -93,17 +93,22 @@ struct MainPlaybackView: View {
     private func fetchColorsFromURL(_ urlString: String) {
         guard let url = URL(string: urlString) else { return }
         
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            guard let data = data, let nativeImage = nativeImageConvert(data: data) else { return }
-            
-            DispatchQueue.mainAsync {
-                let extractedColors = extractColors(from: nativeImage)
-                self.dynamicColors = extractedColors
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                guard let nativeImage = nativeImageConvert(data: data) else { return }
+                
+                // ImageRenderer MUSS zwingend auf dem MainActor ausgeführt werden
+                await MainActor.run {
+                    self.dynamicColors = extractColors(from: nativeImage)
+                }
+            } catch {
+                print("Fehler beim Laden des Favicons für Farbextraktion: \(error)")
             }
         }
-        .resume()
     }
     
+    @MainActor
     private func extractColors(from image: Image) -> [Color] {
         let viewToRender = image.frame(width: 10, height: 10)
         let renderer = ImageRenderer(content: viewToRender)
@@ -167,13 +172,3 @@ import UIKit
 #else
 import AppKit
 #endif
-
-extension DispatchQueue {
-    static func mainAsync(_ block: @escaping () -> Void) {
-        if Thread.isMainThread {
-            block()
-        } else {
-            DispatchQueue.main.async(execute: block)
-        }
-    }
-}

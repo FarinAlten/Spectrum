@@ -7,12 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6A1989953003D19F00CCFC7F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1989943003D19A00CCFC7F /* ContentView.swift */; };
 		6A34282B2FE98C5D00288686 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A34282A2FE98C5600288686 /* OnboardingView.swift */; };
 		6A34282F2FE98F2300288686 /* AppUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A34282E2FE98F1E00288686 /* AppUpdater.swift */; };
 		6A385D9D2FF952ED00178FA2 /* DiscoverViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A385D9C2FF952ED00178FA2 /* DiscoverViews.swift */; };
 		6A385D9F2FF9536100178FA2 /* FavoritesViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A385D9E2FF9536100178FA2 /* FavoritesViews.swift */; };
-		6A385DA12FF9539D00178FA2 /* AppEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A385DA02FF9539D00178FA2 /* AppEntry.swift */; };
+		6A385DA12FF9539D00178FA2 /* SpectrumCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A385DA02FF9539D00178FA2 /* SpectrumCore.swift */; };
 		6A385DA32FF953A900178FA2 /* PlayerViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A385DA22FF953A900178FA2 /* PlayerViews.swift */; };
+		6A3951163004377C000E27C8 /* StationMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A39511530043776000E27C8 /* StationMapView.swift */; };
 		6A958F962FDF1131001EAB43 /* RadioAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958F952FDF112B001EAB43 /* RadioAPIClient.swift */; };
 		6A958F982FDF1149001EAB43 /* PlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958F972FDF113D001EAB43 /* PlaybackManager.swift */; };
 		6A958F9A2FDF1160001EAB43 /* LiquidGlassModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A958F992FDF1151001EAB43 /* LiquidGlassModifier.swift */; };
@@ -29,12 +31,14 @@
 
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* Spectrum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Spectrum.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6A1989943003D19A00CCFC7F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		6A34282A2FE98C5600288686 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		6A34282E2FE98F1E00288686 /* AppUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdater.swift; sourceTree = "<group>"; };
 		6A385D9C2FF952ED00178FA2 /* DiscoverViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverViews.swift; sourceTree = "<group>"; };
 		6A385D9E2FF9536100178FA2 /* FavoritesViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesViews.swift; sourceTree = "<group>"; };
-		6A385DA02FF9539D00178FA2 /* AppEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEntry.swift; sourceTree = "<group>"; };
+		6A385DA02FF9539D00178FA2 /* SpectrumCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpectrumCore.swift; sourceTree = "<group>"; };
 		6A385DA22FF953A900178FA2 /* PlayerViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViews.swift; sourceTree = "<group>"; };
+		6A39511530043776000E27C8 /* StationMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationMapView.swift; sourceTree = "<group>"; };
 		6A5BD67D2FE597ED00185FF3 /* StationGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationGroup.swift; sourceTree = "<group>"; };
 		6A958F952FDF112B001EAB43 /* RadioAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadioAPIClient.swift; sourceTree = "<group>"; };
 		6A958F972FDF113D001EAB43 /* PlaybackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackManager.swift; sourceTree = "<group>"; };
@@ -85,25 +89,27 @@
 			children = (
 				000000000000000000000010 /* Spectrum */,
 				000000000000000000000020 /* Products */,
-				6A958F952FDF112B001EAB43 /* RadioAPIClient.swift */,
-				6A958FA72FDF23CC001EAB43 /* MiniPlayerView.swift */,
-				6A34282A2FE98C5600288686 /* OnboardingView.swift */,
-				6A958FAD2FDF26F2001EAB43 /* Localizable.xcstrings */,
-				6A958F972FDF113D001EAB43 /* PlaybackManager.swift */,
-				6ABB07582FDF519E00780542 /* Station.swift */,
-				6A958F992FDF1151001EAB43 /* LiquidGlassModifier.swift */,
-				6A958F9B2FDF116E001EAB43 /* MainPlaybackView.swift */,
-				6A958F9D2FDF1183001EAB43 /* IntelligenceManager.swift */,
 				6A34282E2FE98F1E00288686 /* AppUpdater.swift */,
-				6A958FAF2FDF3F9F001EAB43 /* SwiftData.swift */,
-				6A958FAB2FDF25D1001EAB43 /* SettingsView.swift */,
-				6A5BD67D2FE597ED00185FF3 /* StationGroup.swift */,
-				6A958FB72FDF42AE001EAB43 /* AppIcon.icon */,
-				6A958FBD2FDF4D5F001EAB43 /* Assets.xcassets */,
+				6A1989943003D19A00CCFC7F /* ContentView.swift */,
 				6A385D9C2FF952ED00178FA2 /* DiscoverViews.swift */,
 				6A385D9E2FF9536100178FA2 /* FavoritesViews.swift */,
-				6A385DA02FF9539D00178FA2 /* AppEntry.swift */,
+				6A958F9D2FDF1183001EAB43 /* IntelligenceManager.swift */,
+				6A958F992FDF1151001EAB43 /* LiquidGlassModifier.swift */,
+				6A958F9B2FDF116E001EAB43 /* MainPlaybackView.swift */,
+				6A958FA72FDF23CC001EAB43 /* MiniPlayerView.swift */,
+				6A34282A2FE98C5600288686 /* OnboardingView.swift */,
+				6A958F972FDF113D001EAB43 /* PlaybackManager.swift */,
 				6A385DA22FF953A900178FA2 /* PlayerViews.swift */,
+				6A958F952FDF112B001EAB43 /* RadioAPIClient.swift */,
+				6A958FAD2FDF26F2001EAB43 /* Localizable.xcstrings */,
+				6ABB07582FDF519E00780542 /* Station.swift */,
+				6A958FAF2FDF3F9F001EAB43 /* SwiftData.swift */,
+				6A958FAB2FDF25D1001EAB43 /* SettingsView.swift */,
+				6A39511530043776000E27C8 /* StationMapView.swift */,
+				6A5BD67D2FE597ED00185FF3 /* StationGroup.swift */,
+				6A385DA02FF9539D00178FA2 /* SpectrumCore.swift */,
+				6A958FB72FDF42AE001EAB43 /* AppIcon.icon */,
+				6A958FBD2FDF4D5F001EAB43 /* Assets.xcassets */,
 			);
 			sourceTree = "<group>";
 		};
@@ -189,7 +195,8 @@
 			files = (
 				6A958F9C2FDF1178001EAB43 /* MainPlaybackView.swift in Sources */,
 				6A958F9A2FDF1160001EAB43 /* LiquidGlassModifier.swift in Sources */,
-				6A385DA12FF9539D00178FA2 /* AppEntry.swift in Sources */,
+				6A1989953003D19F00CCFC7F /* ContentView.swift in Sources */,
+				6A385DA12FF9539D00178FA2 /* SpectrumCore.swift in Sources */,
 				6A385D9D2FF952ED00178FA2 /* DiscoverViews.swift in Sources */,
 				6A34282B2FE98C5D00288686 /* OnboardingView.swift in Sources */,
 				6A958F982FDF1149001EAB43 /* PlaybackManager.swift in Sources */,
@@ -201,6 +208,7 @@
 				6A34282F2FE98F2300288686 /* AppUpdater.swift in Sources */,
 				6A958FAC2FDF25D5001EAB43 /* SettingsView.swift in Sources */,
 				6A385DA32FF953A900178FA2 /* PlayerViews.swift in Sources */,
+				6A3951163004377C000E27C8 /* StationMapView.swift in Sources */,
 				6A958F9E2FDF1189001EAB43 /* IntelligenceManager.swift in Sources */,
 			);
 		};

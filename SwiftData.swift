@@ -25,9 +25,19 @@ final class FavoriteStation {
         self.createdAt = Date()
     }
     
+    convenience init(fromStationWithID id: String, name: String, urlString: String, favicon: String, tags: String) {
+        let stationURL = URL(string: urlString) ?? URL(string: "about:blank")!
+        self.init(
+            id: id,
+            name: name,
+            url: stationURL,
+            favicon: favicon,
+            tags: tags
+        )
+    }
+    
     convenience init(from station: RadioStation) {
         let stationURL = URL(string: station.url) ?? URL(string: "about:blank")!
-        
         self.init(
             id: station.id,
             name: station.name,
