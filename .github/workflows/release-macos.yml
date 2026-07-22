@@ -45,7 +45,6 @@ jobs:
       - name: Extract App Version from Xcode
         id: get_version
         run: |
-          # Liest die Marketing-Version aus der Xcode-Projektdatei aus (z. B. 1.0.3)
           VERSION=$(grep -m1 "MARKETING_VERSION =" Spectrum.xcodeproj/project.pbxproj | awk '{print $3}' | tr -d ';')
           if [ -z "$VERSION" ]; then VERSION="1.0.0"; fi
           echo "APP_VERSION=v$VERSION" >> $GITHUB_OUTPUT
@@ -56,6 +55,7 @@ jobs:
           APP_PATH=$(find build/App.xcarchive/Products/Applications -maxdepth 1 -name "*.app" | head -n 1)
           APP_NAME=$(basename "$APP_PATH")
           
+          # Erstellt jetzt explizit "Spectrum.dmg"
           create-dmg \
             --volname "$APP_NAME Installer" \
             --window-pos 200 120 \
@@ -64,13 +64,13 @@ jobs:
             --icon "$APP_NAME" 175 120 \
             --hide-extension "$APP_NAME" \
             --app-drop-link 425 120 \
-            "build/dmg/App.dmg" \
+            "build/dmg/Spectrum.dmg" \
             "$APP_PATH"
 
       - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          files: build/dmg/App.dmg
+          files: build/dmg/Spectrum.dmg
           tag_name: ${{ steps.get_version.outputs.APP_VERSION }}
           name: Spectrum ${{ steps.get_version.outputs.APP_VERSION }}
         env:
