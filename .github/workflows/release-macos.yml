@@ -1,0 +1,68 @@
+name: Build and Release macOS App (DMG)
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build macOS DMG in Cloud
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Build macOS App
+        run: |
+          if [ "`ls -A | grep -i \\.xcworkspace\$`" ]; then 
+            filetype_parameter="workspace"
+            file_to_build="`ls -A | grep -i \\.xcworkspace\$`"
+          else 
+            filetype_parameter="project"
+            file_to_build="`ls -A | grep -i \\.xcodeproj\$`"
+          fi
+          
+          scheme_list=$(xcodebuild -list -json | tr -d "\n")
+          scheme=$(echo $scheme_list | ruby -e "require 'json'; puts JSON.parse(STDIN.gets)['project']['targets'][0]")
+
+          xcodebuild archive \
+            -$filetype_parameter "$file_to_build" \
+            -scheme "$scheme" \
+            -destination "generic/platform=macOS" \
+            -archivePath ./build/App.xcarchive \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Create DMG
+        run: |
+          mkdir -p build/dmg
+          APP_PATH=$(find build/App.xcarchive/Products/Applications -maxdepth 1 -name "*.app" | head -n 1)
+          APP_NAME=$(basename "$APP_PATH")
+          
+          create-dmg \
+            --volname "$APP_NAME Installer" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "$APP_NAME" 175 120 \
+            --hide-extension "$APP_NAME" \
+            --app-drop-link 425 120 \
+            "build/dmg/App.dmg" \
+            "$APP_PATH"
+
+      - name: Upload to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/dmg/App.dmg
+          tag_name: build-${{ github.run_number }}
+          name: Release ${{ github.run_number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
