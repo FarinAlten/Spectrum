@@ -7,5 +7,14 @@
 		<string>audio</string>
 		<string>fetch</string>
 	</array>
+
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/FarinAlten/Spectrum/main/appcast.xml</string>
+	
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 </dict>
 </plist>
