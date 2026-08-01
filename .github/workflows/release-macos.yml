@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -52,22 +52,29 @@ jobs:
           if [ -z "$VERSION" ]; then VERSION="1.0.0"; fi
           echo "APP_VERSION=v$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create DMG
+      - name: Create DMG (Fixed Drag and Drop)
         run: |
           mkdir -p build/dmg
           APP_PATH=$(find build/App.xcarchive/Products/Applications -maxdepth 1 -name "*.app" | head -n 1)
           APP_NAME=$(basename "$APP_PATH")
           
+          # Staging-Ordner für sauberes DMG-Layout vorbereiten
+          mkdir -p build/dmg_staging
+          cp -R "$APP_PATH" build/dmg_staging/
+          
+          # Echten Symlink zum /Applications Ordner erstellen
+          ln -s /Applications build/dmg_staging/Applications
+
           create-dmg \
-            --volname "$APP_NAME Installer" \
+            --volname "Spectrum Installer" \
             --window-pos 200 120 \
             --window-size 600 400 \
             --icon-size 100 \
             --icon "$APP_NAME" 175 120 \
+            --icon "Applications" 425 120 \
             --hide-extension "$APP_NAME" \
-            --app-drop-link 425 120 \
             "build/dmg/Spectrum.dmg" \
-            "$APP_PATH"
+            "build/dmg_staging"
 
       - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v2
@@ -79,3 +86,23 @@ jobs:
           overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Sparkle Appcast
+        run: |
+          # Sparkle CLI-Tools herunterladen
+          curl -L -O https://github.com/sparkle-project/Sparkle/releases/download/2.6.0/Sparkle-2.6.0.tar.xz
+          tar -xf Sparkle-2.6.0.tar.xz
+          
+          # Appcast für die erzeugte DMG im Staging/Release generieren
+          ./bin/generate_appcast \
+            --download-url-prefix "https://github.com/FarinAlten/Spectrum/releases/download/${{ steps.get_version.outputs.APP_VERSION }}/" \
+            build/dmg
+            
+          # appcast.xml ins Hauptverzeichnis verschieben
+          cp build/dmg/appcast.xml ./appcast.xml
+
+      - name: Commit & Push updated appcast.xml
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update appcast.xml for ${{ steps.get_version.outputs.APP_VERSION }} [skip ci]"
+          file_pattern: "appcast.xml"
