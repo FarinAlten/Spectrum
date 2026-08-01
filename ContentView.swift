@@ -14,7 +14,7 @@ struct ContentView: View {
     @State private var activeCategoryType: RadioAPIClient.CategoryType = .country
     @State private var searchText = ""
     @State private var showSettings = false
-    @State private var showFullPlayer = false 
+    @State private var showFullPlayer = false
     
     enum SidebarItem: Hashable {
         case favorites
@@ -24,7 +24,6 @@ struct ContentView: View {
     
     var body: some View {
         #if os(macOS)
-        // macOS nutzt die dedizierte, saubere Subview
         MacOSContentView(
             apiClient: apiClient,
             selectedSidebarItem: $selectedSidebarItem,
@@ -34,7 +33,6 @@ struct ContentView: View {
             showFullPlayer: $showFullPlayer // Binding nach macOS übergeben
         )
         #else
-        // iOS Code bleibt unangetastet funktional
         ZStack(alignment: .bottom) {
             TabView(selection: Binding(
                 get: { selectedSidebarItem ?? .discover },
@@ -77,7 +75,6 @@ struct ContentView: View {
                 .tag(SidebarItem.map)
             }
             
-            // HIER ANGEPASST: Die Bedingung wurde entfernt, der Miniplayer ist dauerhaft sichtbar
             MiniPlayerView(action: { showFullPlayer = true })
                 .padding(.bottom, UIDevice.current.userInterfaceIdiom == .pad ? 8 : 64)
         }
@@ -87,7 +84,6 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Separate macOS Ansichtsstruktur (Behebt den Compiler-Fehler)
 #if os(macOS)
 struct MacOSContentView: View {
     var apiClient: RadioAPIClient
@@ -95,7 +91,7 @@ struct MacOSContentView: View {
     @Binding var activeCategoryType: RadioAPIClient.CategoryType
     @Binding var searchText: String
     @Binding var showSettings: Bool
-    @Binding var showFullPlayer: Bool // Empfängt das Binding zur Steuerung des Fullplayers
+    @Binding var showFullPlayer: Bool
     
     @Environment(PlaybackManager.self) private var playbackManager
     
@@ -105,12 +101,11 @@ struct MacOSContentView: View {
                 Text("Mediathek")
                     .font(.caption)
                     .fontWeight(.bold)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white.opacity(0.6))
                     .padding(.top, 8)
                 
                 NavigationLink(value: ContentView.SidebarItem.favorites) {
                     Label("Favorites", systemImage: "star.fill")
-                        .foregroundColor(.blue)
                 }
                 
                 NavigationLink(value: ContentView.SidebarItem.discover) {
@@ -119,9 +114,9 @@ struct MacOSContentView: View {
                 
                 NavigationLink(value: ContentView.SidebarItem.map) {
                     Label("Map_Tab_Label", systemImage: "map.fill")
-                        .foregroundColor(.green)
                 }
             }
+            .foregroundColor(.white)
             .listStyle(.sidebar)
             .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
             
@@ -150,7 +145,6 @@ struct MacOSContentView: View {
                 }
             }
             .navigationTitle(titleForSelection(selectedSidebarItem))
-            // HIER ANGEPASST: Die Bedingung wurde entfernt, der Miniplayer bleibt permanent verankert
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 MiniPlayerView(action: { showFullPlayer = true })
             }
@@ -204,3 +198,4 @@ struct MacOSContentView: View {
     }
 }
 #endif
+

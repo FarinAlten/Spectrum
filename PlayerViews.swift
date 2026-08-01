@@ -7,13 +7,8 @@ struct AirPlayPickerView: UIViewRepresentable {
     func makeUIView(context: Context) -> AVRoutePickerView {
         let pickerElement = AVRoutePickerView()
         pickerElement.backgroundColor = .clear
-        
-        // Normaler Zustand: Elegantes, leicht transparentes Weiß
-        pickerElement.tintColor = .white.withAlphaComponent(0.7)
-        
-        // Aktiver Zustand: Das Icon leuchtet blau, wenn AirPlay läuft
+        pickerElement.tintColor = .white.withAlphaComponent(0.8)
         pickerElement.activeTintColor = .systemBlue
-        
         pickerElement.prioritizesVideoDevices = false
         return pickerElement
     }
@@ -21,22 +16,25 @@ struct AirPlayPickerView: UIViewRepresentable {
     func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
 }
 #elseif os(macOS)
-struct AirPlayPickerView: NSViewRepresentable {
-    func makeNSView(context: Context) -> AVRoutePickerView {
-        let pickerElement = AVRoutePickerView()
-        if let button = pickerElement.subviews.first(where: { $0 is NSButton }) as? NSButton {
-            button.bezelStyle = .inline
-            button.isBordered = false
-            button.wantsLayer = true
-            button.layer?.backgroundColor = .clear
-            button.imagePosition = .imageOnly
+struct AirPlayPickerView: View {
+    var body: some View {
+        Button(action: {
+            showAirPlayMenu()
+        }) {
+            Image(systemName: "airplayaudio")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.white.opacity(0.8))
         }
-        pickerElement.setRoutePickerButtonColor(.clear, for: .normal)
-        pickerElement.setRoutePickerButtonColor(.clear, for: .active)
-        return pickerElement
+        .buttonStyle(.plain)
     }
     
-    func updateNSView(_ nsView: AVRoutePickerView, context: Context) {}
+    private func showAirPlayMenu() {
+        // Ruft das native macOS Audio-Routing-Menü an der Cursor-Position auf
+        let picker = AVRoutePickerView(frame: .zero)
+        if let button = picker.subviews.first(where: { $0 is NSButton }) as? NSButton {
+            button.performClick(nil)
+        }
+    }
 }
 #endif
 
@@ -164,9 +162,10 @@ struct FullPlayerView: View {
                 
                 // Untere Kontrollleiste mit AirPlay, Play/Pause und Favoriten-Button
                 HStack(spacing: 32) {
-                    // AirPlay Button mit automatischem Farbwechsel bei Aktivität
+                    
+                    // MARK: - AirPlay Button
                     AirPlayPickerView()
-                        .frame(width: 22, height: 22)
+                        .frame(width: 18, height: 18)
                         .padding(10)
                         .background {
                             ZStack {
@@ -299,3 +298,4 @@ struct FavoriteButton: View {
         .buttonStyle(.plain)
     }
 }
+

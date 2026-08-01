@@ -8,7 +8,10 @@ import Foundation
 import AVFoundation
 import MediaPlayer
 import Observation
+
+#if os(macOS)
 import AppKit
+#endif
 
 @Observable
 @MainActor
