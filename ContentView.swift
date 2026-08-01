@@ -30,7 +30,7 @@ struct ContentView: View {
             activeCategoryType: $activeCategoryType,
             searchText: $searchText,
             showSettings: $showSettings,
-            showFullPlayer: $showFullPlayer // Binding nach macOS übergeben
+            showFullPlayer: $showFullPlayer
         )
         #else
         ZStack(alignment: .bottom) {
@@ -173,15 +173,15 @@ struct MacOSContentView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .sheet(isPresented: $showSettings) {
-            NavigationStack {
-                SettingsView()
-                    .frame(width: 450, height: 480)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Schließen") { showSettings = false }
+            SettingsView()
+                .frame(width: 650, height: 460)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Fertig") {
+                            showSettings = false
                         }
                     }
-            }
+                }
         }
         .sheet(isPresented: $showFullPlayer) {
             FullPlayerView()

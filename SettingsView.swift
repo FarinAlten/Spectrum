@@ -5,90 +5,269 @@
 //  Created by Farin on 6/19/26.
 //
 import SwiftUI
+import SwiftData
+import UniformTypeIdentifiers
 
+// MARK: - App Version Helper
+extension Bundle {
+    var appVersionString: String {
+        let version = object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        let build = object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+        return "\(version) (\(build))"
+    }
+}
+
+// MARK: - Export/Import Document
+struct FavoritesDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+    
+    var stations: [RadioStation]
+    
+    init(stations: [RadioStation] = []) {
+        self.stations = stations
+    }
+    
+    init(configuration: ReadConfiguration) throws {
+        guard let data = configuration.file.regularFileContents else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        self.stations = try JSONDecoder().decode([RadioStation].self, from: data)
+    }
+    
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let data = try encoder.encode(stations)
+        return FileWrapper(regularFileWithContents: data)
+    }
+}
+
+// MARK: - Custom Settings Icon Style
+struct SettingsIcon: View {
+    let systemName: String
+    let color: Color
+    
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: 13, weight: .bold))
+            .foregroundColor(.white)
+            .frame(width: 26, height: 26)
+            .background(color)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+}
+
+// MARK: - Enum für macOS-Selektion
+enum SettingsTab: Hashable, CaseIterable {
+    case appearance
+    case audio
+    case privacy
+    case info
+    
+    var title: LocalizedStringKey {
+        switch self {
+        case .appearance: return "Settings_Row_AppearanceAndLayout"
+        case .audio: return "Settings_Row_AudioPlayback"
+        case .privacy: return "Settings_Row_PrivacyData"
+        case .info: return "Settings_Section_Info"
+        }
+    }
+}
+
+// MARK: - Main Settings View
 struct SettingsView: View {
     @AppStorage("accentColorSelection") private var accentColorSelection = "blue"
     @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+    @State private var selectedTab: SettingsTab? = .appearance
+    
+    private var matchesSearch: (String) -> Bool {
+        { title in
+            searchText.isEmpty || title.localizedCaseInsensitiveContains(searchText)
+        }
+    }
     
     var body: some View {
         #if os(macOS)
-        TabView {
-            AppearanceSettingsView()
-                .tabItem {
-                    Label("Appearance", systemImage: "paintpalette")
-                }
-            
-            AudioSettingsView()
-                .tabItem {
-                    Label("Audio", systemImage: "waveform.circle")
-                }
-            
-            PrivacyAndDataSettingsView()
-                .tabItem {
-                    Label("Privacy", systemImage: "hand.raised.square")
-                }
-            
-            MacInfoSettingsView()
-                .tabItem {
-                    Label("Info", systemImage: "info.circle")
-                }
-        }
-        .frame(width: 420, height: 260)
-        .padding(.top, 12)
-        .tint(getAccentColor(accentColorSelection))
-        #else
-        NavigationStack {
-            List {
-                Section {
-                    NavigationLink(destination: AppearanceSettingsView()) {
-                        Label("Settings_Row_AppearanceAndLayout", systemImage: "paintpalette")
+        HStack(spacing: 0) {
+            // Linke Custom Sidebar (Verhindert das Abblassen unter macOS)
+            VStack(spacing: 12) {
+                // Suchfeld oben
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    TextField("Einstellungen suchen", text: $searchText)
+                        .textFieldStyle(.plain)
+                    if !searchText.isEmpty {
+                        Button(action: { searchText = "" }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
                     }
-                } header: {
-                    Text("Settings_Section_Appearance")
                 }
-                
-                Section {
-                    NavigationLink(destination: AudioSettingsView()) {
-                        Label("Settings_Row_AudioPlayback", systemImage: "waveform.circle")
-                    }
-                    
-                    NavigationLink(destination: PrivacyAndDataSettingsView()) {
-                        Label("Settings_Row_PrivacyData", systemImage: "hand.raised.square")
-                    }
-                } header: {
-                    Text("Settings_Section_AppOptions")
-                }
-                
-                Section {
-                    HStack(alignment: .top) {
-                        Label("Settings_Row_Credits", systemImage: "person.text.rectangle")
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text(String(localized: "Info_Developer_Name")).fontWeight(.medium)
-                            Text(String(localized: "Settings_Row_MadeInGermany")).font(.footnote).foregroundColor(.secondary)
+                .padding(8)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .padding(.horizontal, 10)
+                .padding(.top, 10)
+
+                // Navigationselemente
+                ScrollView {
+                    VStack(spacing: 4) {
+                        if matchesSearch("Erscheinungsbild") || matchesSearch("Layout") || matchesSearch("Appearance") {
+                            sidebarRow(title: "Settings_Row_AppearanceAndLayout", icon: "paintpalette.fill", color: .orange, tab: .appearance)
+                        }
+                        
+                        if matchesSearch("Audio") || matchesSearch("Wiedergabe") {
+                            sidebarRow(title: "Settings_Row_AudioPlayback", icon: "waveform", color: .purple, tab: .audio)
+                        }
+                        
+                        if matchesSearch("Datenschutz") || matchesSearch("Export") || matchesSearch("Import") || matchesSearch("Privacy") {
+                            sidebarRow(title: "Settings_Row_PrivacyData", icon: "hand.raised.fill", color: .blue, tab: .privacy)
+                        }
+                        
+                        if matchesSearch("Info") || matchesSearch("Version") || matchesSearch("Build") {
+                            sidebarRow(title: "Settings_Section_Info", icon: "info.circle.fill", color: .gray, tab: .info)
                         }
                     }
-                    
-                    HStack {
-                        Label("Settings_Row_Version", systemImage: "info.circle")
-                        Spacer()
-                        Text(String(localized: "Info_App_Version_Build")).foregroundColor(.secondary)
+                    .padding(.horizontal, 8)
+                }
+            }
+            .frame(width: 230)
+            .background(Color(nsColor: .underPageBackgroundColor).opacity(0.4))
+
+            Divider()
+
+            // Rechter Detail-Bereich
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text(selectedTab?.title ?? "")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
+
+                Divider()
+
+                ScrollView {
+                    Group {
+                        switch selectedTab {
+                        case .appearance:
+                            AppearanceSettingsView()
+                        case .audio:
+                            AudioSettingsView()
+                        case .privacy:
+                            PrivacyAndDataSettingsView()
+                        case .info:
+                            MacInfoSettingsView()
+                        case .none:
+                            AppearanceSettingsView()
+                        }
                     }
-                } header: {
-                    Text("Settings_Section_Info")
+                    .padding(16)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(nsColor: .windowBackgroundColor))
+        }
+        .frame(width: 650, height: 460)
+        .tint(getAccentColor(accentColorSelection))
+        #else
+        // Klassische iOS Inset-Grouped Liste
+        NavigationStack {
+            List {
+                // SECTION: CUSTOMIZE / DARSTELLUNG
+                if matchesSearch("Erscheinungsbild") || matchesSearch("Layout") || matchesSearch("Appearance") {
+                    Section {
+                        NavigationLink(destination: AppearanceSettingsView()) {
+                            Label {
+                                Text("Settings_Row_AppearanceAndLayout")
+                            } icon: {
+                                SettingsIcon(systemName: "paintpalette.fill", color: .orange)
+                            }
+                        }
+                    } header: {
+                        Text("Settings_Section_Appearance")
+                    }
+                }
+                
+                // SECTION: AUDIO & DATEN
+                if matchesSearch("Audio") || matchesSearch("Wiedergabe") || matchesSearch("Datenschutz") || matchesSearch("Export") || matchesSearch("Import") {
+                    Section {
+                        if matchesSearch("Audio") || matchesSearch("Wiedergabe") {
+                            NavigationLink(destination: AudioSettingsView()) {
+                                Label {
+                                    Text("Settings_Row_AudioPlayback")
+                                } icon: {
+                                    SettingsIcon(systemName: "waveform", color: .purple)
+                                }
+                            }
+                        }
+                        
+                        if matchesSearch("Datenschutz") || matchesSearch("Export") || matchesSearch("Import") || matchesSearch("Privacy") {
+                            NavigationLink(destination: PrivacyAndDataSettingsView()) {
+                                Label {
+                                    Text("Settings_Row_PrivacyData")
+                                } icon: {
+                                    SettingsIcon(systemName: "hand.raised.fill", color: .blue)
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("Settings_Section_AppOptions")
+                    }
+                }
+                
+                // SECTION: ABOUT / INFO
+                if matchesSearch("Info") || matchesSearch("Version") || matchesSearch("Entwickler") || matchesSearch("Build") {
+                    Section {
+                        HStack(alignment: .center) {
+                            Label {
+                                Text("Settings_Row_Credits")
+                            } icon: {
+                                SettingsIcon(systemName: "person.text.rectangle.fill", color: .teal)
+                            }
+                            Spacer()
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(String(localized: "Info_Developer_Name"))
+                                    .fontWeight(.medium)
+                                Text(String(localized: "Settings_Row_MadeInGermany"))
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        HStack {
+                            Label {
+                                Text("Settings_Row_Version")
+                            } icon: {
+                                SettingsIcon(systemName: "info.circle.fill", color: .gray)
+                            }
+                            Spacer()
+                            Text(Bundle.main.appVersionString)
+                                .foregroundColor(.secondary)
+                        }
+                    } header: {
+                        Text("Settings_Section_Info")
+                    }
                 }
             }
             .listStyle(.insetGrouped)
+            .searchable(text: $searchText, placement: .automatic, prompt: "Einstellungen suchen")
             .tint(getAccentColor(accentColorSelection))
             .navigationTitle("Settings_Title_Main")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.secondary)
                             .padding(6)
-                            .background(Color.primary.opacity(0.06))
+                            .background(Color.primary.opacity(0.08))
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
@@ -99,6 +278,39 @@ struct SettingsView: View {
     }
 }
 
+// MARK: - macOS Sidebar Builder Extension
+#if os(macOS)
+extension SettingsView {
+    @ViewBuilder
+    private func sidebarRow(title: LocalizedStringKey, icon: String, color: Color, tab: SettingsTab) -> some View {
+        let isSelected = selectedTab == tab
+        
+        Button(action: {
+            selectedTab = tab
+        }) {
+            HStack(spacing: 10) {
+                SettingsIcon(systemName: icon, color: color)
+                
+                Text(title)
+                    .font(.body)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundColor(isSelected ? .white : .primary)
+                
+                Spacer()
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isSelected ? getAccentColor(accentColorSelection) : Color.clear)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+#endif
+
+// MARK: - Appearance Settings
 struct AppearanceSettingsView: View {
     @AppStorage("preferredDisplayMode") private var preferredDisplayMode = "grid"
     @AppStorage("maxGridColumns") private var maxGridColumns = 4
@@ -107,62 +319,41 @@ struct AppearanceSettingsView: View {
     
     var body: some View {
         Form {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(String(localized: "Appearance_Label_Layout"))
-                        .frame(width: 90, alignment: .trailing)
-                    Picker("", selection: $preferredDisplayMode) {
-                        Text("Appearance_Option_Grid").tag("grid")
-                        Text("Appearance_Option_List").tag("list")
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
+            Section {
+                Picker("Appearance_Label_Layout", selection: $preferredDisplayMode) {
+                    Text("Appearance_Option_Grid").tag("grid")
+                    Text("Appearance_Option_List").tag("list")
                 }
+                .pickerStyle(.segmented)
                 
                 if preferredDisplayMode == "grid" {
-                    HStack {
-                        Spacer()
-                            .frame(width: 90)
-                        Stepper(value: $maxGridColumns, in: 2...5) {
-                            Text(String(localized: "Appearance_Label_Columns")) + Text(": ") + Text("**\(maxGridColumns)**")
-                        }
+                    Stepper(value: $maxGridColumns, in: 2...5) {
+                        Text(String(localized: "Appearance_Label_Columns")) + Text(": ") + Text("**\(maxGridColumns)**")
                     }
-                }
-                
-                Divider()
-                    .padding(.leading, 95)
-                
-                HStack(alignment: .firstTextBaseline) {
-                    Text(String(localized: "Appearance_Label_AccentColor"))
-                        .frame(width: 90, alignment: .trailing)
-                    Picker("", selection: $accentColorSelection) {
-                        Text("Color_Option_Blue").tag("blue")
-                        Text("Color_Option_Purple").tag("purple")
-                        Text("Color_Option_Orange").tag("orange")
-                        Text("Color_Option_Red").tag("red")
-                        Text("Color_Option_Green").tag("green")
-                    }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                    .frame(width: 120)
-                }
-                
-                HStack {
-                    Spacer()
-                        .frame(width: 95)
-                    Toggle(String(localized: "Appearance_Toggle_ShowVisualSymbols"), isOn: $showFlagsAndEmojis)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            
+            Section {
+                Picker("Appearance_Label_AccentColor", selection: $accentColorSelection) {
+                    Text("Color_Option_Blue").tag("blue")
+                    Text("Color_Option_Purple").tag("purple")
+                    Text("Color_Option_Orange").tag("orange")
+                    Text("Color_Option_Red").tag("red")
+                    Text("Color_Option_Green").tag("green")
+                }
+                
+                Toggle(String(localized: "Appearance_Toggle_ShowVisualSymbols"), isOn: $showFlagsAndEmojis)
+            }
         }
         #if !os(macOS)
+        .formStyle(.grouped)
         .navigationTitle("Settings_Row_AppearanceAndLayout")
-        .tint(getAccentColor(accentColorSelection))
         #endif
+        .tint(getAccentColor(accentColorSelection))
     }
 }
 
+// MARK: - Audio Settings
 struct AudioSettingsView: View {
     @AppStorage("streamQuality") private var streamQuality = "high"
     @AppStorage("autoPlayOnStart") private var autoPlayOnStart = false
@@ -171,115 +362,143 @@ struct AudioSettingsView: View {
     
     var body: some View {
         Form {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(String(localized: "Audio_Label_Quality"))
-                        .frame(width: 90, alignment: .trailing)
-                    Picker("", selection: $streamQuality) {
-                        Text("Audio_Option_HQ").tag("high")
-                        Text("Audio_Option_LQ").tag("low")
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
+            Section {
+                Picker("Audio_Label_Quality", selection: $streamQuality) {
+                    Text("Audio_Option_HQ").tag("high")
+                    Text("Audio_Option_LQ").tag("low")
                 }
+                .pickerStyle(.segmented)
                 
-                HStack(alignment: .firstTextBaseline) {
-                    Text(String(localized: "Audio_Label_BufferSize"))
-                        .frame(width: 90, alignment: .trailing)
-                    Picker("", selection: $bufferSize) {
-                        Text("Audio_Buffer_Small").tag("small")
-                        Text("Audio_Buffer_Medium").tag("medium")
-                        Text("Audio_Buffer_Large").tag("large")
-                    }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                    .frame(width: 120)
-                }
-                
-                Divider()
-                    .padding(.leading, 95)
-                
-                HStack {
-                    Spacer()
-                        .frame(width: 95)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Toggle(String(localized: "Audio_Toggle_AutoPlayOnStart"), isOn: $autoPlayOnStart)
-                        Toggle(String(localized: "Audio_Toggle_CrossfadeOnStationChange"), isOn: $fadeTransitions)
-                    }
+                Picker("Audio_Label_BufferSize", selection: $bufferSize) {
+                    Text("Audio_Buffer_Small").tag("small")
+                    Text("Audio_Buffer_Medium").tag("medium")
+                    Text("Audio_Buffer_Large").tag("large")
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            
+            Section {
+                Toggle(String(localized: "Audio_Toggle_AutoPlayOnStart"), isOn: $autoPlayOnStart)
+                Toggle(String(localized: "Audio_Toggle_CrossfadeOnStationChange"), isOn: $fadeTransitions)
+            }
         }
         #if !os(macOS)
+        .formStyle(.grouped)
         .navigationTitle("Settings_Row_AudioPlayback")
         #endif
     }
 }
 
+// MARK: - Privacy & Data Settings (Export/Import)
 struct PrivacyAndDataSettingsView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query private var storedFavorites: [FavoriteStation]
+    
     @AppStorage("allowTelemetry") private var allowTelemetry = true
     @AppStorage("loadFaviconsMobileData") private var loadFaviconsMobileData = true
     
+    @State private var isExporting = false
+    @State private var isImporting = false
+    @State private var exportDocument: FavoritesDocument?
+    
     var body: some View {
         Form {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top) {
-                    Spacer()
-                        .frame(width: 20)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Toggle(String(localized: "Privacy_Toggle_SendAnonymousTelemetry"), isOn: $allowTelemetry)
-                        Text(String(localized: "Privacy_Helper_TelemetryDescription"))
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
+            Section {
+                Toggle(String(localized: "Privacy_Toggle_SendAnonymousTelemetry"), isOn: $allowTelemetry)
                 #if !os(macOS)
-                Divider()
-                    .padding(.vertical, 4)
-                
                 Toggle(String(localized: "Privacy_Toggle_LoadFaviconsOnCellular"), isOn: $loadFaviconsMobileData)
                 #endif
+            } header: {
+                Text("Datenschutz")
+            } footer: {
+                Text(String(localized: "Privacy_Helper_TelemetryDescription"))
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 15)
+            
+            Section {
+                Button(action: prepareExport) {
+                    Label("Data_Export_Favorites", systemImage: "square.and.arrow.up")
+                }
+                
+                Button(action: { isImporting = true }) {
+                    Label("Data_Import_Favorites", systemImage: "square.and.arrow.down")
+                }
+            } header: {
+                Text("Daten verwalten")
+            }
         }
         #if !os(macOS)
+        .formStyle(.grouped)
         .navigationTitle("Settings_Row_PrivacyData")
         #endif
+        .fileExporter(
+            isPresented: $isExporting,
+            document: exportDocument,
+            contentType: .json,
+            defaultFilename: "Spectrum_Favorites.json"
+        ) { result in
+            if case .failure(let error) = result {
+                print("Export failed: \(error.localizedDescription)")
+            }
+        }
+        .fileImporter(
+            isPresented: $isImporting,
+            allowedContentTypes: [.json]
+        ) { result in
+            switch result {
+            case .success(let url):
+                importFavorites(from: url)
+            case .failure(let error):
+                print("Import failed: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func prepareExport() {
+        let exportableStations = storedFavorites.map { fav in
+            RadioStation(
+                id: fav.id,
+                name: fav.name,
+                url: fav.url.absoluteString,
+                favicon: fav.favicon,
+                tags: fav.tags
+            )
+        }
+        exportDocument = FavoritesDocument(stations: exportableStations)
+        isExporting = true
+    }
+    
+    private func importFavorites(from url: URL) {
+        guard url.startAccessingSecurityScopedResource() else { return }
+        defer { url.stopAccessingSecurityScopedResource() }
+        
+        do {
+            let data = try Data(contentsOf: url)
+            let importedStations = try JSONDecoder().decode([RadioStation].self, from: data)
+            
+            let existingIDs = Set(storedFavorites.map { $0.id })
+            
+            for station in importedStations {
+                if !existingIDs.contains(station.id) {
+                    let newFav = FavoriteStation(from: station)
+                    modelContext.insert(newFav)
+                }
+            }
+            try modelContext.save()
+        } catch {
+            print("Failed to decode or save imported favorites: \(error)")
+        }
     }
 }
 
+// MARK: - Mac Info View
 #if os(macOS)
 struct MacInfoSettingsView: View {
     var body: some View {
         Form {
-            VStack(alignment: .leading, spacing: 12) {
-                Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 10) {
-                    GridRow {
-                        Text(String(localized: "Info_Label_Developer"))
-                            .fontWeight(.semibold)
-                            .gridCellAnchor(.trailing)
-                        Text(String(localized: "Info_Developer_Name"))
-                    }
-                    GridRow {
-                        Text(String(localized: "Info_Label_Origin"))
-                            .fontWeight(.semibold)
-                            .gridCellAnchor(.trailing)
-                        Text(String(localized: "Info_Origin_MadeInGermany"))
-                    }
-                    GridRow {
-                        Text(String(localized: "Info_Label_Version"))
-                            .fontWeight(.semibold)
-                            .gridCellAnchor(.trailing)
-                        Text(String(localized: "Info_App_Version_Build"))
-                            .foregroundColor(.secondary)
-                    }
-                }
+            Section {
+                LabeledContent(String(localized: "Info_Label_Developer"), value: String(localized: "Info_Developer_Name"))
+                LabeledContent(String(localized: "Info_Label_Origin"), value: String(localized: "Info_Origin_MadeInGermany"))
+                LabeledContent(String(localized: "Info_Label_Version"), value: Bundle.main.appVersionString)
             }
-            .padding(.horizontal, 30)
-            .padding(.vertical, 20)
         }
     }
 }
@@ -294,3 +513,4 @@ func getAccentColor(_ name: String) -> Color {
     default: return .blue
     }
 }
+
