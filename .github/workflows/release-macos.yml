@@ -1,6 +1,7 @@
 name: Build and Release macOS App (DMG)
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -17,6 +18,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Install create-dmg
         run: brew install create-dmg
@@ -55,7 +58,6 @@ jobs:
           APP_PATH=$(find build/App.xcarchive/Products/Applications -maxdepth 1 -name "*.app" | head -n 1)
           APP_NAME=$(basename "$APP_PATH")
           
-          # Erstellt jetzt explizit "Spectrum.dmg"
           create-dmg \
             --volname "$APP_NAME Installer" \
             --window-pos 200 120 \
@@ -73,5 +75,7 @@ jobs:
           files: build/dmg/Spectrum.dmg
           tag_name: ${{ steps.get_version.outputs.APP_VERSION }}
           name: Spectrum ${{ steps.get_version.outputs.APP_VERSION }}
+          generate_release_notes: true
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
