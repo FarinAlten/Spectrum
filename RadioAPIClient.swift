@@ -13,6 +13,12 @@ final class RadioAPIClient {
     var stations: [RadioStation] = []
     var searchResults: [RadioStation] = []
     var isLoading = false
+    var hasMoreStations = true
+    
+    private var currentCategoryValue: String = ""
+    private var currentCategoryType: CategoryType = .country
+    private var currentOffset = 0
+    private let pageSize = 100
     
     enum CategoryType: Hashable {
         case country
@@ -20,11 +26,8 @@ final class RadioAPIClient {
         case search
     }
     
-    // Aktuell ausgewählter, funktionierender Base-URL Mirror
     private var activeBaseURL: URL = URL(string: "https://de1.api.radio-browser.info/json")!
     private var isBaseURLResolved = false
-    
-    // Hält die Referenz zum aktuellen Karten-Task, um ihn bei Bewegung abzubrechen
     private var currentMapTask: Task<Void, Never>?
     
     private var apiSession: URLSession {
@@ -37,7 +40,25 @@ final class RadioAPIClient {
         return URLSession(configuration: configuration)
     }
     
-    /// Holt dynamisch einen fitten Mirror-Server, falls noch nicht geschehen
+    private func filterUniqueNames(_ incomingStations: [RadioStation], existingNames: inout Set<String>) -> [RadioStation] {
+        var uniqueStations: [RadioStation] = []
+        
+        for station in incomingStations {
+            let cleanName = station.name
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+            
+            guard !cleanName.isEmpty else { continue }
+            
+            if !existingNames.contains(cleanName) {
+                existingNames.insert(cleanName)
+                uniqueStations.append(station)
+            }
+        }
+        
+        return uniqueStations
+    }
+    
     private func ensureValidBaseURL() async {
         if isBaseURLResolved { return }
         
@@ -48,26 +69,20 @@ final class RadioAPIClient {
             struct APIServer: Codable { let name: String }
             let servers = try JSONDecoder().decode([APIServer].self, from: data)
             
-            // Wähle zufällig einen Server aus, um die Last perfekt zu verteilen
             if let randomServer = servers.randomElement() {
                 if let newURL = URL(string: "https://\(randomServer.name)/json") {
                     self.activeBaseURL = newURL
                     self.isBaseURLResolved = true
-                    print("🌐 Erfolgreich verbunden mit Mirror: \(newURL.absoluteString)")
                 }
             }
         } catch {
-            print("⚠️ Mirror-Auflösung fehlgeschlagen, nutze Fallback-Server: \(error)")
             isBaseURLResolved = true
         }
     }
     
-    // Lädt Sender dynamisch basierend auf dem aktuellen Kartenausschnitt
     func fetchStationsInRegion(latitude: Double, longitude: Double, latDelta: Double, lonDelta: Double) async {
-        // Alten Task sofort abbrechen, um API-Spam zu verhindern
         currentMapTask?.cancel()
         
-        // Begrenzung deutlich erhöht: Lädt jetzt auch bei sehr weitem Herauszoomen (z.B. Kontinent-Ebene)
         guard latDelta < 120.0 else { return }
         
         currentMapTask = Task {
@@ -75,15 +90,12 @@ final class RadioAPIClient {
             
             if Task.isCancelled { return }
             
-            // Berechne die Bounding Box aus Zentrum und Zoom-Delta
             let minLat = latitude - (latDelta / 2.0)
             let maxLat = latitude + (latDelta / 2.0)
             let minLon = longitude - (lonDelta / 2.0)
             let maxLon = longitude + (lonDelta / 2.0)
             
-            // DYNAMISCHES LIMIT: Wenn weit herausgezoomt ist, fordern wir mehr Stationen (400) an,
-            // damit große Gebiete nicht leer wirken. Nah dran reichen 150 für beste Performance.
-            let dynamicLimit = latDelta > 20.0 ? 400 : 150
+            let dynamicLimit = latDelta > 20.0 ? 400 : 200
             
             guard let url = URL(string: "\(activeBaseURL.absoluteString)/stations/search?minlatitude=\(minLat)&maxlatitude=\(maxLat)&minlongitude=\(minLon)&maxlongitude=\(maxLon)&limit=\(dynamicLimit)&has_geo=true&hidebroken=true&order=clickcount&reverse=true") else {
                 return
@@ -91,14 +103,12 @@ final class RadioAPIClient {
             
             do {
                 let (data, _) = try await apiSession.data(from: url)
-                
                 if Task.isCancelled { return }
-                
                 let decodedStations = try JSONDecoder().decode([RadioStation].self, from: data)
                 
                 await MainActor.run {
-                    self.stations = decodedStations
-                    print("🗺️ Region-Update: \(decodedStations.count) Sender geladen (Delta: \(latDelta)).")
+                    var seenNames = Set<String>()
+                    self.stations = self.filterUniqueNames(decodedStations, existingNames: &seenNames)
                 }
             } catch {
                 if !(error is CancellationError) {
@@ -108,7 +118,6 @@ final class RadioAPIClient {
         }
     }
     
-    // Lädt bis zu 250 Top-Sender eines spezifischen Landes mit Geo-Daten für die Karte
     func fetchTopStationsForMap(country: String = "Germany") async {
         guard !isLoading else { return }
         await MainActor.run { self.isLoading = true }
@@ -125,12 +134,11 @@ final class RadioAPIClient {
             let (data, _) = try await apiSession.data(from: url)
             let decodedStations = try JSONDecoder().decode([RadioStation].self, from: data)
             await MainActor.run {
-                self.stations = decodedStations
+                var seenNames = Set<String>()
+                self.stations = self.filterUniqueNames(decodedStations, existingNames: &seenNames)
                 self.isLoading = false
-                print("🗺️ Karte: \(decodedStations.count) Sender für \(country) erfolgreich geladen.")
             }
         } catch {
-            print("Fehler beim Laden der Karten-Stationen: \(error)")
             await MainActor.run { self.isLoading = false }
         }
     }
@@ -160,9 +168,7 @@ final class RadioAPIClient {
                     .filter { !$0.isEmpty }
                     .sorted()
             }
-        } catch {
-            print("Fehler beim Laden der Länder: \(error)")
-        }
+        } catch {}
     }
     
     private func fetchGenres() async {
@@ -177,43 +183,59 @@ final class RadioAPIClient {
                     .filter { !$0.isEmpty }
                     .sorted()
             }
-        } catch {
-            print("Fehler beim Laden der Genres: \(error)")
-        }
+        } catch {}
     }
     
     func fetchStations(for value: String, type: CategoryType) async {
         guard type != .search else { return }
-        await MainActor.run { self.isLoading = true }
         
-        await ensureValidBaseURL()
-        
-        let endpoint: String
-        switch type {
-        case .country:
-            endpoint = "bycountry"
-        case .genre:
-            endpoint = "bytag"
-        case .search:
-            await MainActor.run { self.isLoading = false }
-            return
+        await MainActor.run {
+            self.isLoading = true
+            self.stations = []
+            self.currentOffset = 0
+            self.hasMoreStations = true
+            self.currentCategoryValue = value
+            self.currentCategoryType = type
         }
         
-        guard let encodedValue = value.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
-              let url = URL(string: "\(activeBaseURL.absoluteString)/stations/\(endpoint)/\(encodedValue)?order=clickcount&reverse=true&hidebroken=true&has_geo=true") else {
+        await ensureValidBaseURL()
+        await loadStationsPage(reset: true)
+    }
+    
+    func loadMoreStations() async {
+        guard !isLoading && hasMoreStations else { return }
+        await MainActor.run { self.isLoading = true }
+        await loadStationsPage(reset: false)
+    }
+    
+    private func loadStationsPage(reset: Bool) async {
+        let endpoint = currentCategoryType == .country ? "bycountry" : "bytag"
+        
+        guard let encodedValue = currentCategoryValue.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let url = URL(string: "\(activeBaseURL.absoluteString)/stations/\(endpoint)/\(encodedValue)?order=clickcount&reverse=true&hidebroken=true&offset=\(currentOffset)&limit=\(pageSize)") else {
             await MainActor.run { self.isLoading = false }
             return
         }
         
         do {
             let (data, _) = try await apiSession.data(from: url)
-            let decodedStations = try JSONDecoder().decode([RadioStation].self, from: data)
+            let newStations = try JSONDecoder().decode([RadioStation].self, from: data)
+            
             await MainActor.run {
-                self.stations = decodedStations
+                if reset {
+                    var seenNames = Set<String>()
+                    self.stations = self.filterUniqueNames(newStations, existingNames: &seenNames)
+                } else {
+                    var existingNames = Set(self.stations.map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() })
+                    let uniqueNewStations = self.filterUniqueNames(newStations, existingNames: &existingNames)
+                    self.stations.append(contentsOf: uniqueNewStations)
+                }
+                
+                self.currentOffset += newStations.count
+                self.hasMoreStations = newStations.count >= self.pageSize
                 self.isLoading = false
             }
         } catch {
-            print("Fehler beim Laden der Stationen: \(error)")
             await MainActor.run { self.isLoading = false }
         }
     }
@@ -239,21 +261,19 @@ final class RadioAPIClient {
         do {
             let (data, _) = try await apiSession.data(from: url)
             let decodedResults = try JSONDecoder().decode([RadioStation].self, from: data)
-            
             let sortedResults = decodedResults.sorted { $0.clickcount > $1.clickcount }
             
             await MainActor.run {
-                self.searchResults = sortedResults
+                var seenNames = Set<String>()
+                self.searchResults = self.filterUniqueNames(sortedResults, existingNames: &seenNames)
                 self.isLoading = false
             }
         } catch {
-            print("Fehler bei der Sendersuche: \(error)")
             await MainActor.run { self.isLoading = false }
         }
     }
 }
 
-// MARK: - API Helper Models
 struct APICountry: Codable {
     let name: String
     let iso3166_1: String?

@@ -2,7 +2,7 @@
 //  PlaybackManager.swift
 //  Spectrum
 //
-//  Created by Farin  on 6/19/26.
+//  Created by Farin on 6/19/26.
 //
 import Foundation
 import AVFoundation
@@ -16,7 +16,6 @@ import AppKit
 @Observable
 @MainActor
 final class PlaybackManager {
-    // MARK: - Properties
     var currentStation: RadioStation?
     var isPlaying = false
     var isLoadingStation = false
@@ -25,14 +24,12 @@ final class PlaybackManager {
     private let nowPlayingInfoCenter = MPNowPlayingInfoCenter.default()
     private var playerItemObserver: NSKeyValueObservation?
     
-    // MARK: - Init
     init() {
         setupRemoteCommandCenter()
         sharedAudioPlayer.automaticallyWaitsToMinimizeStalling = true
         nowPlayingInfoCenter.playbackState = .paused
     }
     
-    // MARK: - Public Control Methods
     func play(station: RadioStation) {
         self.currentStation = station
         self.isLoadingStation = true
@@ -68,14 +65,16 @@ final class PlaybackManager {
         playerItem.preferredForwardBufferDuration = 5
         playerItem.canUseNetworkResourcesForLiveStreamingWhilePaused = true
         
-        // KVO-Observer für den Ladezustand des aktuellen Audio-Items
         playerItemObserver = playerItem.observe(\.status, options: [.new, .initial]) { [weak self] item, _ in
-            Task { @MainActor in
-                if item.status == .readyToPlay {
-                    self?.isLoadingStation = false
-                } else if item.status == .failed {
-                    self?.isLoadingStation = false
-                    self?.isPlaying = false
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    guard let self = self else { return }
+                    if item.status == .readyToPlay {
+                        self.isLoadingStation = false
+                    } else if item.status == .failed {
+                        self.isLoadingStation = false
+                        self.isPlaying = false
+                    }
                 }
             }
         }
@@ -89,9 +88,9 @@ final class PlaybackManager {
         updateNowPlaying(station: station, artwork: nil)
         
         if !station.favicon.isEmpty, let url = URL(string: station.favicon) {
-            Task {
-                if let artwork = await fetchArtwork(from: url) {
-                    self.updateNowPlaying(station: station, artwork: artwork)
+            Task { [weak self] in
+                if let artwork = await self?.fetchArtwork(from: url) {
+                    self?.updateNowPlaying(station: station, artwork: artwork)
                 }
             }
         }
@@ -119,7 +118,6 @@ final class PlaybackManager {
         }
     }
     
-    // MARK: - Private Helper Methods
     private func setupRemoteCommandCenter() {
         let commandCenter = MPRemoteCommandCenter.shared()
         
@@ -182,3 +180,4 @@ final class PlaybackManager {
         return nil
     }
 }
+

@@ -32,6 +32,9 @@ struct ContentView: View {
             showSettings: $showSettings,
             showFullPlayer: $showFullPlayer
         )
+        .task {
+            await apiClient.fetchDiscoverData()
+        }
         #else
         ZStack(alignment: .bottom) {
             TabView(selection: Binding(
@@ -78,6 +81,9 @@ struct ContentView: View {
             MiniPlayerView(action: { showFullPlayer = true })
                 .padding(.bottom, UIDevice.current.userInterfaceIdiom == .pad ? 8 : 64)
         }
+        .task {
+            await apiClient.fetchDiscoverData()
+        }
         .sheet(isPresented: $showSettings) { NavigationStack { SettingsView() } }
         .sheet(isPresented: $showFullPlayer) { FullPlayerView() }
         #endif
@@ -86,7 +92,7 @@ struct ContentView: View {
 
 #if os(macOS)
 struct MacOSContentView: View {
-    var apiClient: RadioAPIClient
+    @Bindable var apiClient: RadioAPIClient
     @Binding var selectedSidebarItem: ContentView.SidebarItem?
     @Binding var activeCategoryType: RadioAPIClient.CategoryType
     @Binding var searchText: String

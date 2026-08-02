@@ -14,7 +14,7 @@ struct SelectedCategory: Identifiable, Hashable {
 }
 
 struct DiscoverView: View {
-    var apiClient: RadioAPIClient
+    @Bindable var apiClient: RadioAPIClient
     @Binding var categoryType: RadioAPIClient.CategoryType
     @Binding var searchText: String
     
@@ -33,12 +33,10 @@ struct DiscoverView: View {
     }
     
     var body: some View {
-        // HIER GEÄNDERT: Ein NavigationStack umschließt nun den Inhalt der Detail-Spalte
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     if !searchText.isEmpty {
-                        // Suchergebnisse...
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Suchergebnisse")
                                 .font(.title3)
@@ -62,7 +60,6 @@ struct DiscoverView: View {
                             }
                         }
                     } else {
-                        // Favoriten (iOS)...
                         #if os(iOS)
                         if !favoriteStations.isEmpty {
                             VStack(alignment: .leading, spacing: 10) {
@@ -83,7 +80,6 @@ struct DiscoverView: View {
                         }
                         #endif
                         
-                        // Grid / Listen Inhalt
                         VStack(alignment: .leading, spacing: 12) {
                             Text(sectionHeaderTitle)
                                 .font(.title3)
@@ -109,7 +105,6 @@ struct DiscoverView: View {
                 .padding(.vertical)
             }
             .background(Color(platformColor: .windowBackground))
-            // Der Destination-Modifikator greift jetzt korrekt innerhalb des Stacks!
             .navigationDestination(for: SelectedCategory.self) { category in
                 CategoryStationListView(category: category, apiClient: apiClient)
             }
@@ -169,18 +164,275 @@ struct DiscoverView: View {
         }
     }
     
+    /// Manuelle Zuordnung aller Länder und Flaggen via Switch-Statement
     private func countryFlag(for country: String) -> String {
-        switch country.lowercased() {
-        case "germany", "deutschland": return "🇩🇪"
-        case "united kingdom", "uk": return "🇬🇧"
-        case "united states", "usa": return "🇺🇸"
-        case "france", "frankreich": return "🇫🇷"
-        case "italy", "italien": return "🇮🇹"
-        case "spain", "spanien": return "🇪🇸"
-        case "austria", "österreich": return "🇦🇹"
-        case "switzerland", "schweiz": return "🇨🇭"
-        default: return "🌍"
+        let cleanCountry = country.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        
+        let isoCode: String
+        switch cleanCountry {
+            
+        // MARK: - Europa
+        case "germany", "deutschland":
+            isoCode = "DE"
+        case "belgium", "belgien":
+            isoCode = "BE"
+        case "austria", "österreich":
+            isoCode = "AT"
+        case "switzerland", "schweiz":
+            isoCode = "CH"
+        case "france", "frankreich":
+            isoCode = "FR"
+        case "spain", "spanien":
+            isoCode = "ES"
+        case "italy", "italien":
+            isoCode = "IT"
+        case "netherlands", "niederlande", "the netherlands":
+            isoCode = "NL"
+        case "united kingdom", "uk", "great britain", "großbritannien":
+            isoCode = "GB"
+        case "ireland", "irland":
+            isoCode = "IE"
+        case "poland", "polen":
+            isoCode = "PL"
+        case "czech republic", "czechia", "tschechien":
+            isoCode = "CZ"
+        case "slovakia", "slowakei":
+            isoCode = "SK"
+        case "denmark", "dänemark":
+            isoCode = "DK"
+        case "sweden", "schweden":
+            isoCode = "SE"
+        case "norway", "norwegen":
+            isoCode = "NO"
+        case "finland", "finnland":
+            isoCode = "FI"
+        case "portugal":
+            isoCode = "PT"
+        case "greece", "griechenland":
+            isoCode = "GR"
+        case "turkey", "türkei", "türkiye":
+            isoCode = "TR"
+        case "ukraine":
+            isoCode = "UA"
+        case "russia", "russland", "russian federation":
+            isoCode = "RU"
+        case "romania", "rumänien":
+            isoCode = "RO"
+        case "hungary", "ungarn":
+            isoCode = "HU"
+        case "croatia", "kroatien":
+            isoCode = "HR"
+        case "serbia", "serbien":
+            isoCode = "RS"
+        case "bulgaria", "bulgarien":
+            isoCode = "BG"
+        case "slovenia", "slowenien":
+            isoCode = "SI"
+        case "iceland", "island":
+            isoCode = "IS"
+        case "luxembourg", "luxemburg":
+            isoCode = "LU"
+        case "liechtenstein":
+            isoCode = "LI"
+        case "monaco":
+            isoCode = "MC"
+        case "andorra":
+            isoCode = "AD"
+        case "malta":
+            isoCode = "MT"
+        case "cyprus", "zypern":
+            isoCode = "CY"
+        case "albania", "albanien":
+            isoCode = "AL"
+        case "bosnia and herzegovina", "bosnien und herzegowina":
+            isoCode = "BA"
+        case "north macedonia", "nordmazedonien":
+            isoCode = "MK"
+        case "montenegro":
+            isoCode = "ME"
+        case "estonia", "estland":
+            isoCode = "EE"
+        case "latvia", "lettland":
+            isoCode = "LV"
+        case "lithuania", "litauen":
+            isoCode = "LT"
+        case "belarus", "weißrussland":
+            isoCode = "BY"
+        case "moldova", "moldawien":
+            isoCode = "MD"
+
+        case "united states", "united states of america", "usa", "the united states":
+            isoCode = "US"
+        case "canada", "kanada":
+            isoCode = "CA"
+        case "mexico", "mexiko":
+            isoCode = "MX"
+        case "cuba", "kuba":
+            isoCode = "CU"
+        case "jamaica", "jamaika":
+            isoCode = "JM"
+        case "dominican republic", "dominikanische republik":
+            isoCode = "DO"
+        case "puerto rico":
+            isoCode = "PR"
+        case "haiti":
+            isoCode = "HT"
+        case "bahamas":
+            isoCode = "BS"
+        case "costa rica":
+            isoCode = "CR"
+        case "panama":
+            isoCode = "PA"
+        case "guatemala":
+            isoCode = "GT"
+        case "honduras":
+            isoCode = "HN"
+        case "el salvador":
+            isoCode = "SV"
+        case "nicaragua":
+            isoCode = "NI"
+
+        // MARK: - Südamerika
+        case "brazil", "brasilien":
+            isoCode = "BR"
+        case "argentina", "argentinien":
+            isoCode = "AR"
+        case "chile":
+            isoCode = "CL"
+        case "colombia", "kolumbien":
+            isoCode = "CO"
+        case "peru":
+            isoCode = "PE"
+        case "venezuela":
+            isoCode = "VE"
+        case "ecuador":
+            isoCode = "EC"
+        case "bolivia", "bolivien":
+            isoCode = "BO"
+        case "paraguay":
+            isoCode = "PY"
+        case "uruguay":
+            isoCode = "UY"
+
+        // MARK: - Asien
+        case "japan":
+            isoCode = "JP"
+        case "china":
+            isoCode = "CN"
+        case "south korea", "korea", "republic of korea", "südkorea":
+            isoCode = "KR"
+        case "north korea", "nordkorea":
+            isoCode = "KP"
+        case "india", "indien":
+            isoCode = "IN"
+        case "thailand":
+            isoCode = "TH"
+        case "vietnam":
+            isoCode = "VN"
+        case "indonesia", "indonesien":
+            isoCode = "ID"
+        case "philippines", "philippinen":
+            isoCode = "PH"
+        case "malaysia":
+            isoCode = "MY"
+        case "singapore", "singapur":
+            isoCode = "SG"
+        case "taiwan":
+            isoCode = "TW"
+        case "hong kong", "hongkong":
+            isoCode = "HK"
+        case "pakistan":
+            isoCode = "PK"
+        case "bangladesh", "bangladesch":
+            isoCode = "BD"
+        case "sri lanka":
+            isoCode = "LK"
+        case "nepal":
+            isoCode = "NP"
+        case "kazakhstan", "kasachstan":
+            isoCode = "KZ"
+        case "uzbekistan", "usbekistan":
+            isoCode = "UZ"
+
+        // MARK: - Naher Osten & Nordafrika
+        case "israel":
+            isoCode = "IL"
+        case "saudi arabia", "saudi-arabien":
+            isoCode = "SA"
+        case "united arab emirates", "uae", "vereinigte arabische emirate":
+            isoCode = "AE"
+        case "qatar", "katar":
+            isoCode = "QA"
+        case "kuwait":
+            isoCode = "KW"
+        case "iran":
+            isoCode = "IR"
+        case "iraq", "irak":
+            isoCode = "IQ"
+        case "jordan", "jordanien":
+            isoCode = "JO"
+        case "lebanon", "libanon":
+            isoCode = "LB"
+        case "egypt", "ägypten":
+            isoCode = "EG"
+        case "morocco", "marokko":
+            isoCode = "MA"
+        case "algeria", "algerien":
+            isoCode = "DZ"
+        case "tunisia", "tunesien":
+            isoCode = "TN"
+
+        // MARK: - Sub-Sahara Afrika
+        case "south africa", "südafrika":
+            isoCode = "ZA"
+        case "nigeria":
+            isoCode = "NG"
+        case "kenya", "kenia":
+            isoCode = "KE"
+        case "ghana":
+            isoCode = "GH"
+        case "ethiopia", "äthiopien":
+            isoCode = "ET"
+        case "tanzania", "tansania":
+            isoCode = "TZ"
+        case "uganda":
+            isoCode = "UG"
+        case "senegal":
+            isoCode = "SN"
+        case "cameroon", "Kamerun":
+            isoCode = "CM"
+        case "madagascar", "madagaskar":
+            isoCode = "MG"
+
+        // MARK: - Ozeanien
+        case "australia", "australien":
+            isoCode = "AU"
+        case "new zealand", "neuseeland":
+            isoCode = "NZ"
+        case "fiji", "fidschi":
+            isoCode = "FJ"
+        case "papua new guinea", "papua-neuguinea":
+            isoCode = "PG"
+
+        // Fallback für ungematchte Eingaben
+        default:
+            return "🌍"
         }
+
+        return flagEmoji(for: isoCode)
+    }
+
+    /// Konvertiert einen ISO-2 Code (z.B. "DE") in das Unicode-Flaggen-Emoji (🇩🇪)
+    private func flagEmoji(for isoCode: String) -> String {
+        let code = isoCode.uppercased()
+        guard code.count == 2 else { return "🌍" }
+        
+        var scalarView = String.UnicodeScalarView()
+        for i in code.utf16 {
+            guard let scalar = UnicodeScalar(127397 + UInt32(i)) else { return "🌍" }
+            scalarView.append(scalar)
+        }
+        return String(scalarView)
     }
     
     private func genreEmoji(for genre: String) -> String {
@@ -195,7 +447,7 @@ struct DiscoverView: View {
     }
 }
 
-// MARK: - ZWEI UI-KOMPONENTEN
+// MARK: - UI-KOMPONENTEN
 struct CategoryGridCard: View {
     let title: String
     let visualElement: String
@@ -302,11 +554,43 @@ struct FavoritesSectionView: View {
 
 struct CategoryStationListView: View {
     let category: SelectedCategory
-    var apiClient: RadioAPIClient
+    @Bindable var apiClient: RadioAPIClient
+    
+    @State private var categorySearchText = ""
+    @State private var showFullPlayer = false
+    
+    private var filteredStations: [RadioStation] {
+        if categorySearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return apiClient.stations
+        } else {
+            return apiClient.stations.filter { station in
+                station.name.localizedCaseInsensitiveContains(categorySearchText) ||
+                station.tags.localizedCaseInsensitiveContains(categorySearchText)
+            }
+        }
+    }
     
     var body: some View {
-        List(apiClient.stations) { station in
-            StationRow(station: station)
+        List {
+            ForEach(filteredStations) { station in
+                StationRow(station: station)
+                    .onAppear {
+                        if station.id == apiClient.stations.last?.id {
+                            Task {
+                                await apiClient.loadMoreStations()
+                            }
+                        }
+                    }
+            }
+            
+            if apiClient.isLoading {
+                HStack {
+                    Spacer()
+                    ProgressView("Lade weitere Sender...")
+                        .padding()
+                    Spacer()
+                }
+            }
         }
         #if os(macOS)
         .listStyle(.inset)
@@ -314,6 +598,13 @@ struct CategoryStationListView: View {
         .listStyle(.insetGrouped)
         #endif
         .navigationTitle(category.name)
+        .searchable(text: $categorySearchText, prompt: "In \(category.name) suchen...")
+        .safeAreaInset(edge: .bottom) {
+            MiniPlayerView(action: { showFullPlayer = true })
+        }
+        .sheet(isPresented: $showFullPlayer) {
+            FullPlayerView()
+        }
         .task {
             await apiClient.fetchStations(for: category.name, type: category.type)
         }
@@ -370,3 +661,4 @@ fileprivate extension Color {
         #endif
     }
 }
+

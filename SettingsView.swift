@@ -17,31 +17,6 @@ extension Bundle {
     }
 }
 
-// MARK: - Export/Import Document
-struct FavoritesDocument: FileDocument {
-    static var readableContentTypes: [UTType] { [.json] }
-    
-    var stations: [RadioStation]
-    
-    init(stations: [RadioStation] = []) {
-        self.stations = stations
-    }
-    
-    init(configuration: ReadConfiguration) throws {
-        guard let data = configuration.file.regularFileContents else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-        self.stations = try JSONDecoder().decode([RadioStation].self, from: data)
-    }
-    
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        let data = try encoder.encode(stations)
-        return FileWrapper(regularFileWithContents: data)
-    }
-}
-
 // MARK: - Custom Settings Icon Style
 struct SettingsIcon: View {
     let systemName: String
@@ -76,6 +51,8 @@ enum SettingsTab: Hashable, CaseIterable {
 
 // MARK: - Main Settings View
 struct SettingsView: View {
+    @Query private var storedFavorites: [FavoriteStation] // Query hier in der Haupt-View!
+    
     @AppStorage("accentColorSelection") private var accentColorSelection = "blue"
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
@@ -90,7 +67,7 @@ struct SettingsView: View {
     var body: some View {
         #if os(macOS)
         HStack(spacing: 0) {
-            // Linke Custom Sidebar (Verhindert das Abblassen unter macOS)
+            // Linke Custom Sidebar
             VStack(spacing: 12) {
                 // Suchfeld oben
                 HStack {
@@ -161,7 +138,7 @@ struct SettingsView: View {
                         case .audio:
                             AudioSettingsView()
                         case .privacy:
-                            PrivacyAndDataSettingsView()
+                            PrivacyAndDataSettingsView(storedFavorites: storedFavorites)
                         case .info:
                             MacInfoSettingsView()
                         case .none:
@@ -209,7 +186,7 @@ struct SettingsView: View {
                         }
                         
                         if matchesSearch("Datenschutz") || matchesSearch("Export") || matchesSearch("Import") || matchesSearch("Privacy") {
-                            NavigationLink(destination: PrivacyAndDataSettingsView()) {
+                            NavigationLink(destination: PrivacyAndDataSettingsView(storedFavorites: storedFavorites)) {
                                 Label {
                                     Text("Settings_Row_PrivacyData")
                                 } icon: {
@@ -391,14 +368,12 @@ struct AudioSettingsView: View {
 // MARK: - Privacy & Data Settings (Export/Import)
 struct PrivacyAndDataSettingsView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var storedFavorites: [FavoriteStation]
+    let storedFavorites: [FavoriteStation] // Kein @Query mehr in dieser View!
     
     @AppStorage("allowTelemetry") private var allowTelemetry = true
     @AppStorage("loadFaviconsMobileData") private var loadFaviconsMobileData = true
     
-    @State private var isExporting = false
     @State private var isImporting = false
-    @State private var exportDocument: FavoritesDocument?
     
     var body: some View {
         Form {
@@ -414,7 +389,7 @@ struct PrivacyAndDataSettingsView: View {
             }
             
             Section {
-                Button(action: prepareExport) {
+                Button(action: exportFavorites) {
                     Label("Data_Export_Favorites", systemImage: "square.and.arrow.up")
                 }
                 
@@ -429,16 +404,6 @@ struct PrivacyAndDataSettingsView: View {
         .formStyle(.grouped)
         .navigationTitle("Settings_Row_PrivacyData")
         #endif
-        .fileExporter(
-            isPresented: $isExporting,
-            document: exportDocument,
-            contentType: .json,
-            defaultFilename: "Spectrum_Favorites.json"
-        ) { result in
-            if case .failure(let error) = result {
-                print("Export failed: \(error.localizedDescription)")
-            }
-        }
         .fileImporter(
             isPresented: $isImporting,
             allowedContentTypes: [.json]
@@ -452,7 +417,8 @@ struct PrivacyAndDataSettingsView: View {
         }
     }
     
-    private func prepareExport() {
+    @MainActor
+    private func exportFavorites() {
         let exportableStations = storedFavorites.map { fav in
             RadioStation(
                 id: fav.id,
@@ -462,8 +428,45 @@ struct PrivacyAndDataSettingsView: View {
                 tags: fav.tags
             )
         }
-        exportDocument = FavoritesDocument(stations: exportableStations)
-        isExporting = true
+        
+        guard let data = try? JSONEncoder().encode(exportableStations) else { return }
+        
+        #if os(macOS)
+        let savePanel = NSSavePanel()
+        savePanel.allowedContentTypes = [.json]
+        savePanel.nameFieldStringValue = "Spectrum_Favorites.json"
+        savePanel.title = "Favoriten exportieren"
+        
+        if let window = NSApp.keyWindow {
+            savePanel.beginSheetModal(for: window) { response in
+                if response == .OK, let url = savePanel.url {
+                    try? data.write(to: url)
+                }
+            }
+        } else {
+            savePanel.begin { response in
+                if response == .OK, let url = savePanel.url {
+                    try? data.write(to: url)
+                }
+            }
+        }
+        #else
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("Spectrum_Favorites.json")
+        try? data.write(to: tempURL)
+        
+        let activityVC = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
+        
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController {
+            
+            if let popover = activityVC.popoverPresentationController {
+                popover.sourceView = rootVC.view
+                popover.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            rootVC.present(activityVC, animated: true)
+        }
+        #endif
     }
     
     private func importFavorites(from url: URL) {
