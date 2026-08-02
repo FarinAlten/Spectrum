@@ -8,6 +8,27 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
+fileprivate struct JSONDataDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+    static var writableContentTypes: [UTType] { [.json] }
+
+    var data: Data
+
+    init(data: Data) { self.data = data }
+
+    init(configuration: ReadConfiguration) throws {
+        if let file = configuration.file.regularFileContents {
+            self.data = file
+        } else {
+            self.data = Data()
+        }
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        return FileWrapper(regularFileWithContents: data)
+    }
+}
+
 // MARK: - App Version Helper
 extension Bundle {
     var appVersionString: String {
@@ -374,6 +395,12 @@ struct PrivacyAndDataSettingsView: View {
     @AppStorage("loadFaviconsMobileData") private var loadFaviconsMobileData = true
     
     @State private var isImporting = false
+    #if os(macOS)
+    @State private var isExporting = false
+    @State private var exportDocument: JSONDataDocument? = nil
+    @State private var showExportAlert = false
+    @State private var exportAlertMessage: String = ""
+    #endif
     
     var body: some View {
         Form {
@@ -392,6 +419,9 @@ struct PrivacyAndDataSettingsView: View {
                 Button(action: exportFavorites) {
                     Label("Data_Export_Favorites", systemImage: "square.and.arrow.up")
                 }
+                #if os(macOS)
+                .disabled(isExporting)
+                #endif
                 
                 Button(action: { isImporting = true }) {
                     Label("Data_Import_Favorites", systemImage: "square.and.arrow.down")
@@ -415,6 +445,30 @@ struct PrivacyAndDataSettingsView: View {
                 print("Import failed: \(error.localizedDescription)")
             }
         }
+        #if os(macOS)
+        .fileExporter(
+            isPresented: $isExporting,
+            document: exportDocument,
+            contentType: .json,
+            defaultFilename: "Spectrum_Favorites"
+        ) { result in
+            switch result {
+            case .success:
+                exportAlertMessage = String(localized: "Export erfolgreich gespeichert.")
+                showExportAlert = true
+            case .failure(let error):
+                exportAlertMessage = String(localized: "Export fehlgeschlagen: ") + error.localizedDescription
+                showExportAlert = true
+            }
+            exportDocument = nil
+            isExporting = false
+        }
+        .alert("Export", isPresented: $showExportAlert, actions: {
+            Button("OK", role: .cancel) { }
+        }, message: {
+            Text(exportAlertMessage)
+        })
+        #endif
     }
     
     @MainActor
@@ -428,45 +482,55 @@ struct PrivacyAndDataSettingsView: View {
                 tags: fav.tags
             )
         }
-        
-        guard let data = try? JSONEncoder().encode(exportableStations) else { return }
-        
-        #if os(macOS)
-        let savePanel = NSSavePanel()
-        savePanel.allowedContentTypes = [.json]
-        savePanel.nameFieldStringValue = "Spectrum_Favorites.json"
-        savePanel.title = "Favoriten exportieren"
-        
-        if let window = NSApp.keyWindow {
-            savePanel.beginSheetModal(for: window) { response in
-                if response == .OK, let url = savePanel.url {
-                    try? data.write(to: url)
+
+        do {
+            let data = try JSONEncoder().encode(exportableStations)
+            #if os(macOS)
+            // Prevent re-entrant exports
+            guard !isExporting else { return }
+            exportDocument = JSONDataDocument(data: data)
+            isExporting = true
+            #else
+            let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("SpectrumExport", isDirectory: true)
+            do {
+                try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+            } catch {
+                print("⚠️ Konnte temp-Verzeichnis nicht erstellen: \(error)")
+            }
+            var fileURL = tempDir.appendingPathComponent("Spectrum_Favorites_\(UUID().uuidString).json")
+            do {
+                try data.write(to: fileURL, options: [.atomic])
+                var resourceValues = URLResourceValues()
+                resourceValues.isExcludedFromBackup = true
+                try? fileURL.setResourceValues(resourceValues)
+            } catch {
+                print("⚠️ Schreiben der Export-Datei fehlgeschlagen: \(error)")
+                return
+            }
+
+            let activityVC = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
+            activityVC.completionWithItemsHandler = { _, _, _, _ in
+                // Optionally clean up old temp files later; keep directory for future exports
+            }
+
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController {
+                // Ensure presentation from the top-most view controller
+                var presenter = rootVC
+                while let presented = presenter.presentedViewController { presenter = presented }
+                if let popover = activityVC.popoverPresentationController {
+                    popover.sourceView = presenter.view
+                    popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 0, height: 0)
+                    popover.permittedArrowDirections = []
                 }
+                presenter.present(activityVC, animated: true)
+            } else {
+                print("⚠️ Konnte UIActivityViewController nicht präsentieren: keine aktive WindowScene gefunden.")
             }
-        } else {
-            savePanel.begin { response in
-                if response == .OK, let url = savePanel.url {
-                    try? data.write(to: url)
-                }
-            }
+            #endif
+        } catch {
+            print("⚠️ JSON-Encoding der Favoriten fehlgeschlagen: \(error)")
         }
-        #else
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("Spectrum_Favorites.json")
-        try? data.write(to: tempURL)
-        
-        let activityVC = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootVC = windowScene.windows.first?.rootViewController {
-            
-            if let popover = activityVC.popoverPresentationController {
-                popover.sourceView = rootVC.view
-                popover.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
-                popover.permittedArrowDirections = []
-            }
-            rootVC.present(activityVC, animated: true)
-        }
-        #endif
     }
     
     private func importFavorites(from url: URL) {
@@ -516,4 +580,3 @@ func getAccentColor(_ name: String) -> Color {
     default: return .blue
     }
 }
-

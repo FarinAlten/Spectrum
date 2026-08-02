@@ -4,8 +4,11 @@
 //
 //  Created by Farin on 6/19/26.
 //
+#if os(macos)
 import Foundation
+
 import Sparkle
+
 import SwiftUI
 
 // MARK: - Sparkle Controller Wrapper
@@ -28,4 +31,4 @@ final class AppUpdater: NSObject, SPUUpdaterDelegate {
         updaterController.updater.canCheckForUpdates
     }
 }
-
+#endif
