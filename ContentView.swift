@@ -136,7 +136,7 @@ struct MacOSContentView: View {
                 Text("Mediathek")
                     .font(.caption)
                     .fontWeight(.bold)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(.secondary)
                     .padding(.top, 8)
                 
                 NavigationLink(value: ContentView.SidebarItem.favorites) {
@@ -151,7 +151,7 @@ struct MacOSContentView: View {
                     Label("Map_Tab_Label", systemImage: "map.fill")
                 }
             }
-            .foregroundColor(.white)
+            .foregroundColor(.primary)
             .listStyle(.sidebar)
             .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
             
