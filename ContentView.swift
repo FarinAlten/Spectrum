@@ -42,6 +42,25 @@ struct ContentView: View {
                 get: { selectedSidebarItem ?? .discover },
                 set: { selectedSidebarItem = $0 }
             )) {
+                // MARK: - Favorites Tab (iOS)
+                NavigationStack {
+                    List {
+                        Section(header: Text("Deine Favoriten")) {
+                            FavoritesSectionView()
+                        }
+                    }
+                    .listStyle(.inset)
+                    .navigationTitle("Favorites")
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button(action: { showSettings = true }) { Image(systemName: "gearshape") }
+                        }
+                    }
+                }
+                .tabItem { Label("Favorites", systemImage: "star.fill") }
+                .tag(SidebarItem.favorites)
+                
+                // MARK: - Discover Tab (iOS)
                 NavigationStack {
                     DiscoverView(
                         apiClient: apiClient,
@@ -67,6 +86,7 @@ struct ContentView: View {
                 .tabItem { Label("Discover", systemImage: "safari.fill") }
                 .tag(SidebarItem.discover)
                 
+                // MARK: - Map Tab (iOS)
                 NavigationStack {
                     StationMapView(apiClient: apiClient)
                         .toolbar {
@@ -184,7 +204,6 @@ struct MacOSContentView: View {
                     }
                 }
             }
-            .searchable(text: $searchText, placement: .toolbar, prompt: "Sender, Länder, Genres...")
         }
         .navigationSplitViewStyle(.balanced)
         .sheet(isPresented: $showSettings) {

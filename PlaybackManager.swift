@@ -29,12 +29,14 @@ final class PlaybackManager {
         sharedAudioPlayer.automaticallyWaitsToMinimizeStalling = true
         nowPlayingInfoCenter.playbackState = .paused
         
-        // Empfange Wiedergabebefehle von der Apple Watch via WatchConnectivityManager
+        // Empfange Wiedergabebefehle von der Apple Watch via WatchConnectivityManager (Nur iOS / watchOS)
+        #if os(iOS) || os(watchOS)
         WatchConnectivityManager.shared.onTogglePlaybackRequest = { [weak self] in
             Task { @MainActor in
                 self?.togglePlayback()
             }
         }
+        #endif
     }
     
     func play(station: RadioStation) {
@@ -106,10 +108,12 @@ final class PlaybackManager {
         updateNowPlaying(station: station, artwork: nil)
         
         // Statusänderung an die Apple Watch (oder gekoppeltes Gerät) übertragen
+        #if os(iOS) || os(watchOS)
         WatchConnectivityManager.shared.sendPlaybackState(
             stationName: station.name,
             isPlaying: true
         )
+        #endif
         
         if !station.favicon.isEmpty, let url = URL(string: station.favicon) {
             Task { [weak self] in
@@ -142,10 +146,12 @@ final class PlaybackManager {
         }
         
         // Aktualisierten Status an die Apple Watch synchronisieren
+        #if os(iOS) || os(watchOS)
         WatchConnectivityManager.shared.sendPlaybackState(
             stationName: currentStation?.name,
             isPlaying: isPlaying
         )
+        #endif
     }
     
     private func setupRemoteCommandCenter() {
