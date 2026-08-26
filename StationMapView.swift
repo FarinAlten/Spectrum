@@ -8,6 +8,8 @@ import SwiftUI
 import MapKit
 import CoreLocation
 
+#if !os(watchOS)
+
 @Observable
 class LocationPermissionManager: NSObject, CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
@@ -136,8 +138,10 @@ struct MapLabelStyle: ViewModifier {
     func body(content: Content) -> some View {
         #if os(macOS)
         let bgColor = Color(.windowBackgroundColor).opacity(0.95)
-        #else
+        #elseif os(iOS)
         let bgColor = Color(.systemBackground).opacity(0.95)
+        #else
+        let bgColor = Color.black.opacity(0.95)
         #endif
         
         return content
@@ -152,3 +156,6 @@ struct MapLabelStyle: ViewModifier {
             .shadow(color: Color.black.opacity(0.15), radius: 3, x: 0, y: 1)
     }
 }
+
+#endif
+

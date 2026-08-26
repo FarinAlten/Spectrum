@@ -7,6 +7,7 @@
 import SwiftUI
 import SwiftData
 
+#if !os(watchOS)
 @main
 struct SpectrumApp: App {
     @State private var playbackManager = PlaybackManager()
@@ -19,3 +20,5 @@ struct SpectrumApp: App {
         .modelContainer(for: FavoriteStation.self)
     }
 }
+#endif
+

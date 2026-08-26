@@ -6,6 +6,7 @@
 //
 import SwiftUI
 
+#if !os(watchOS)
 struct ContentView: View {
     @State private var apiClient = RadioAPIClient()
     @Environment(PlaybackManager.self) private var playbackManager
@@ -49,10 +50,10 @@ struct ContentView: View {
                     )
                     .navigationTitle("Discover")
                     .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
+                        ToolbarItem(placement: .topBarLeading) {
                             Button(action: { showSettings = true }) { Image(systemName: "gearshape") }
                         }
-                        ToolbarItem(placement: .navigationBarTrailing) {
+                        ToolbarItem(placement: .topBarTrailing) {
                             Menu {
                                 Picker("Kategorie", selection: $activeCategoryType) {
                                     Label("Länder", systemImage: "globe").tag(RadioAPIClient.CategoryType.country)
@@ -69,7 +70,7 @@ struct ContentView: View {
                 NavigationStack {
                     StationMapView(apiClient: apiClient)
                         .toolbar {
-                            ToolbarItem(placement: .navigationBarLeading) {
+                            ToolbarItem(placement: .topBarLeading) {
                                 Button(action: { showSettings = true }) { Image(systemName: "gearshape") }
                             }
                         }
@@ -79,13 +80,21 @@ struct ContentView: View {
             }
             
             MiniPlayerView(action: { showFullPlayer = true })
-                .padding(.bottom, UIDevice.current.userInterfaceIdiom == .pad ? 8 : 64)
+                .padding(.bottom, isPad ? 8 : 64)
         }
         .task {
             await apiClient.fetchDiscoverData()
         }
         .sheet(isPresented: $showSettings) { NavigationStack { SettingsView() } }
         .sheet(isPresented: $showFullPlayer) { FullPlayerView() }
+        #endif
+    }
+    
+    private var isPad: Bool {
+        #if os(iOS)
+        return UIDevice.current.userInterfaceIdiom == .pad
+        #else
+        return false
         #endif
     }
 }
@@ -203,5 +212,6 @@ struct MacOSContentView: View {
         }
     }
 }
+#endif
 #endif
 

@@ -7,6 +7,8 @@
 import SwiftUI
 import SwiftData
 
+#if !os(watchOS)
+
 struct SelectedCategory: Identifiable, Hashable {
     let id = UUID()
     let name: String
@@ -32,54 +34,43 @@ struct DiscoverView: View {
         categoryType == .country ? "Countries" : "Genres"
     }
     
+    // MARK: - Filter für lokale Kategorien (Länder & Genres)
+    private var filteredCountries: [String] {
+        if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return apiClient.countries
+        }
+        return apiClient.countries.filter { $0.localizedCaseInsensitiveContains(searchText) }
+    }
+    
+    private var filteredGenres: [String] {
+        if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return apiClient.genres
+        }
+        return apiClient.genres.filter { $0.localizedCaseInsensitiveContains(searchText) }
+    }
+
     var body: some View {
+        #if os(macOS)
+        mainContent
+            .searchable(text: $searchText, prompt: "Sender, Länder, Genres...")
+        #else
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    if !searchText.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Suchergebnisse")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .padding(.horizontal)
-                            
-                            if apiClient.searchResults.isEmpty {
-                                Text("Keine Sender gefunden")
-                                    .foregroundColor(.secondary)
-                                    .italic()
-                                    .padding(.horizontal)
-                            } else {
-                                LazyVStack(spacing: 0) {
-                                    ForEach(apiClient.searchResults) { station in
-                                        StationRow(station: station)
-                                            .padding(.horizontal)
-                                            .padding(.vertical, 8)
-                                        Divider().padding(.leading, 56)
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        #if os(iOS)
-                        if !favoriteStations.isEmpty {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Favorites")
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                    .padding(.horizontal)
-                                
-                                LazyVStack(spacing: 0) {
-                                    FavoritesSectionView()
-                                        .padding(.horizontal)
-                                        .padding(.vertical, 6)
-                                }
-                                .background(Color(platformColor: .controlBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .padding(.horizontal)
-                            }
-                        }
-                        #endif
-                        
+            mainContent
+                .searchable(text: $searchText, prompt: "Sender, Länder, Genres...")
+        }
+        #endif
+    }
+    
+    private var mainContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                
+                // MARK: - Wenn etwas gesucht wird
+                if !searchText.isEmpty {
+                    
+                    // 1. Treffer in Kategorien (Länder oder Genres)
+                    let matchingCategories = categoryType == .country ? filteredCountries : filteredGenres
+                    if !matchingCategories.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Text(sectionHeaderTitle)
                                 .font(.title3)
@@ -88,12 +79,12 @@ struct DiscoverView: View {
                             
                             if preferredDisplayMode == "grid" {
                                 LazyVGrid(columns: gridColumns, spacing: 12) {
-                                    contentItems
+                                    categoryItems(for: matchingCategories)
                                 }
                                 .padding(.horizontal)
                             } else {
                                 LazyVStack(spacing: 0) {
-                                    contentItems
+                                    categoryItems(for: matchingCategories)
                                 }
                                 .background(Color(platformColor: .controlBackground))
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -101,13 +92,89 @@ struct DiscoverView: View {
                             }
                         }
                     }
+                    
+                    // 2. Sender-Ergebnisse aus der API-Suche
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Sender")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .padding(.horizontal)
+                        
+                        if apiClient.isLoading {
+                            HStack {
+                                Spacer()
+                                ProgressView("Suche Sender...")
+                                    .padding()
+                                Spacer()
+                            }
+                        } else if apiClient.searchResults.isEmpty {
+                            Text("Keine Sender gefunden")
+                                .foregroundColor(.secondary)
+                                .italic()
+                                .padding(.horizontal)
+                        } else {
+                            LazyVStack(spacing: 0) {
+                                ForEach(apiClient.searchResults) { station in
+                                    StationRow(station: station)
+                                        .padding(.horizontal)
+                                        .padding(.vertical, 8)
+                                    Divider().padding(.leading, 56)
+                                }
+                            }
+                        }
+                    }
+                    
+                } else {
+                    // MARK: - Standardsicht ohne Suche
+                    #if os(iOS)
+                    if !favoriteStations.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Favorites")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .padding(.horizontal)
+                            
+                            LazyVStack(spacing: 0) {
+                                FavoritesSectionView()
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 6)
+                            }
+                            .background(Color(platformColor: .controlBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .padding(.horizontal)
+                        }
+                    }
+                    #endif
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(sectionHeaderTitle)
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .padding(.horizontal)
+                        
+                        let currentCategories = categoryType == .country ? apiClient.countries : apiClient.genres
+                        
+                        if preferredDisplayMode == "grid" {
+                            LazyVGrid(columns: gridColumns, spacing: 12) {
+                                categoryItems(for: currentCategories)
+                            }
+                            .padding(.horizontal)
+                        } else {
+                            LazyVStack(spacing: 0) {
+                                categoryItems(for: currentCategories)
+                            }
+                            .background(Color(platformColor: .controlBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .padding(.horizontal)
+                        }
+                    }
                 }
-                .padding(.vertical)
             }
-            .background(Color(platformColor: .windowBackground))
-            .navigationDestination(for: SelectedCategory.self) { category in
-                CategoryStationListView(category: category, apiClient: apiClient)
-            }
+            .padding(.vertical)
+        }
+        .background(Color(platformColor: .windowBackground))
+        .navigationDestination(for: SelectedCategory.self) { category in
+            CategoryStationListView(category: category, apiClient: apiClient)
         }
         .onChange(of: searchText) { _, newValue in
             Task { await apiClient.searchStations(matching: newValue) }
@@ -119,48 +186,25 @@ struct DiscoverView: View {
         }
     }
     
+    // MARK: - Dynamische Darstellung der Kategorien
     @ViewBuilder
-    private var contentItems: some View {
-        switch categoryType {
-        case .country:
-            ForEach(apiClient.countries, id: \.self) { country in
-                NavigationLink(value: SelectedCategory(name: country, type: .country)) {
-                    if preferredDisplayMode == "grid" {
-                        CategoryGridCard(
-                            title: country,
-                            visualElement: showFlagsAndEmojis ? countryFlag(for: country) : ""
-                        )
-                    } else {
-                        CategoryListRow(
-                            title: country,
-                            visualElement: showFlagsAndEmojis ? countryFlag(for: country) : "",
-                            accentColor: .blue
-                        )
-                    }
+    private func categoryItems(for categories: [String]) -> some View {
+        ForEach(categories, id: \.self) { item in
+            NavigationLink(value: SelectedCategory(name: item, type: categoryType)) {
+                if preferredDisplayMode == "grid" {
+                    CategoryGridCard(
+                        title: item,
+                        visualElement: showFlagsAndEmojis ? (categoryType == .country ? countryFlag(for: item) : genreEmoji(for: item)) : ""
+                    )
+                } else {
+                    CategoryListRow(
+                        title: item,
+                        visualElement: showFlagsAndEmojis ? (categoryType == .country ? countryFlag(for: item) : genreEmoji(for: item)) : "",
+                        accentColor: categoryType == .country ? .blue : .purple
+                    )
                 }
-                .buttonStyle(.plain)
             }
-            
-        case .genre:
-            ForEach(apiClient.genres, id: \.self) { genre in
-                NavigationLink(value: SelectedCategory(name: genre, type: .genre)) {
-                    if preferredDisplayMode == "grid" {
-                        CategoryGridCard(
-                            title: genre,
-                            visualElement: showFlagsAndEmojis ? genreEmoji(for: genre) : ""
-                        )
-                    } else {
-                        CategoryListRow(
-                            title: genre,
-                            visualElement: showFlagsAndEmojis ? genreEmoji(for: genre) : "",
-                            accentColor: .purple
-                        )
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-        case .search:
-            EmptyView()
+            .buttonStyle(.plain)
         }
     }
     
@@ -261,6 +305,7 @@ struct DiscoverView: View {
         case "moldova", "moldawien":
             isoCode = "MD"
 
+        // MARK: - Nordamerika
         case "united states", "united states of america", "usa", "the united states":
             isoCode = "US"
         case "canada", "kanada":
@@ -478,7 +523,9 @@ struct CategoryGridCard: View {
         )
         .scaleEffect(isHovered ? 1.01 : 1.0)
         .animation(.easeOut(duration: 0.12), value: isHovered)
+        #if !os(watchOS)
         .onHover { hovering in isHovered = hovering }
+        #endif
     }
 }
 
@@ -552,6 +599,7 @@ struct FavoritesSectionView: View {
     }
 }
 
+// MARK: - Detailansicht der gewählten Kategorie (Crash-frei ohne doppeltes .searchable)
 struct CategoryStationListView: View {
     let category: SelectedCategory
     @Bindable var apiClient: RadioAPIClient
@@ -571,34 +619,55 @@ struct CategoryStationListView: View {
     }
     
     var body: some View {
-        List {
-            ForEach(filteredStations) { station in
-                StationRow(station: station)
-                    .onAppear {
-                        if station.id == apiClient.stations.last?.id {
-                            Task {
-                                await apiClient.loadMoreStations()
-                            }
-                        }
+        VStack(spacing: 0) {
+            // Integriertes Inline-Suchfeld zur Vermeidung von Toolbar-Konflikten auf macOS
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                TextField("In \(category.name) suchen...", text: $categorySearchText)
+                    .textFieldStyle(.plain)
+                if !categorySearchText.isEmpty {
+                    Button(action: { categorySearchText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
                     }
-            }
-            
-            if apiClient.isLoading {
-                HStack {
-                    Spacer()
-                    ProgressView("Lade weitere Sender...")
-                        .padding()
-                    Spacer()
+                    .buttonStyle(.plain)
                 }
             }
+            .padding(8)
+            .background(Color(platformColor: .controlBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .padding(.horizontal)
+            .padding(.top, 8)
+
+            List {
+                ForEach(filteredStations) { station in
+                    StationRow(station: station)
+                        .onAppear {
+                            if station.id == apiClient.stations.last?.id {
+                                Task {
+                                    await apiClient.loadMoreStations()
+                                }
+                            }
+                        }
+                }
+                
+                if apiClient.isLoading {
+                    HStack {
+                        Spacer()
+                        ProgressView("Lade weitere Sender...")
+                            .padding()
+                        Spacer()
+                    }
+                }
+            }
+            #if os(macOS)
+            .listStyle(.inset)
+            #else
+            .listStyle(.insetGrouped)
+            #endif
         }
-        #if os(macOS)
-        .listStyle(.inset)
-        #else
-        .listStyle(.insetGrouped)
-        #endif
         .navigationTitle(category.name)
-        .searchable(text: $categorySearchText, prompt: "In \(category.name) suchen...")
         .safeAreaInset(edge: .bottom) {
             MiniPlayerView(action: { showFullPlayer = true })
         }
@@ -653,12 +722,19 @@ fileprivate extension Color {
         case .windowBackground: self.init(nsColor: .windowBackgroundColor)
         case .controlBackground: self.init(nsColor: .controlBackgroundColor)
         }
-        #else
+        #elseif os(iOS)
         switch platformColor {
         case .windowBackground: self.init(uiColor: .systemGroupedBackground)
         case .controlBackground: self.init(uiColor: .secondarySystemGroupedBackground)
         }
+        #else
+        switch platformColor {
+        case .windowBackground: self.init(Color.black)
+        case .controlBackground: self.init(Color.gray.opacity(0.2))
+        }
         #endif
     }
 }
+
+#endif
 

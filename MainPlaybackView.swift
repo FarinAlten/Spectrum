@@ -6,6 +6,12 @@
 //
 import SwiftUI
 
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
+
 struct MainPlaybackView: View {
     @Environment(PlaybackManager.self) private var playbackManager
     
@@ -155,20 +161,15 @@ struct MainPlaybackView: View {
 }
 
 func nativeImageConvert(data: Data) -> Image? {
-    #if os(iOS)
-    if let uiImage = UIImage(data: data) {
-        return Image(uiImage: uiImage)
-    }
-    #else
+    #if os(macOS)
     if let nsImage = NSImage(data: data) {
         return Image(nsImage: nsImage)
+    }
+    #else
+    if let uiImage = UIImage(data: data) {
+        return Image(uiImage: uiImage)
     }
     #endif
     return nil
 }
 
-#if os(iOS)
-import UIKit
-#else
-import AppKit
-#endif

@@ -28,16 +28,32 @@ final class PlaybackManager {
         setupRemoteCommandCenter()
         sharedAudioPlayer.automaticallyWaitsToMinimizeStalling = true
         nowPlayingInfoCenter.playbackState = .paused
+        
+        // Empfange Wiedergabebefehle von der Apple Watch via WatchConnectivityManager
+        WatchConnectivityManager.shared.onTogglePlaybackRequest = { [weak self] in
+            Task { @MainActor in
+                self?.togglePlayback()
+            }
+        }
     }
     
     func play(station: RadioStation) {
         self.currentStation = station
         self.isLoadingStation = true
         
+        // AudioSession-Konfiguration für iOS und watchOS
         #if os(iOS)
         let audioSession = AVAudioSession.sharedInstance()
         do {
             try audioSession.setCategory(.playback, mode: .default, options: [.allowAirPlay])
+            try audioSession.setActive(true)
+        } catch {
+            print("Fehler bei der Audio-Session-Initialisierung: \(error)")
+        }
+        #elseif os(watchOS)
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(.playback, mode: .default)
             try audioSession.setActive(true)
         } catch {
             print("Fehler bei der Audio-Session-Initialisierung: \(error)")
@@ -55,7 +71,9 @@ final class PlaybackManager {
         }
         
         let options: [String: Any] = [
-            "AVURLAssetHTTPHeaderFieldsKey": ["User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"],
+            "AVURLAssetHTTPHeaderFieldsKey": [
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+            ],
             AVURLAssetPreferPreciseDurationAndTimingKey: false
         ]
         
@@ -87,6 +105,12 @@ final class PlaybackManager {
         
         updateNowPlaying(station: station, artwork: nil)
         
+        // Statusänderung an die Apple Watch (oder gekoppeltes Gerät) übertragen
+        WatchConnectivityManager.shared.sendPlaybackState(
+            stationName: station.name,
+            isPlaying: true
+        )
+        
         if !station.favicon.isEmpty, let url = URL(string: station.favicon) {
             Task { [weak self] in
                 if let artwork = await self?.fetchArtwork(from: url) {
@@ -116,6 +140,12 @@ final class PlaybackManager {
         if let station = currentStation {
             updateNowPlayingStatusOnly(station: station)
         }
+        
+        // Aktualisierten Status an die Apple Watch synchronisieren
+        WatchConnectivityManager.shared.sendPlaybackState(
+            stationName: currentStation?.name,
+            isPlaying: isPlaying
+        )
     }
     
     private func setupRemoteCommandCenter() {
@@ -165,7 +195,7 @@ final class PlaybackManager {
     private func fetchArtwork(from url: URL) async -> MPMediaItemArtwork? {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            #if os(iOS)
+            #if os(iOS) || os(watchOS)
             if let image = UIImage(data: data) {
                 return MPMediaItemArtwork(boundsSize: image.size) { _ in image }
             }

@@ -83,10 +83,18 @@ struct MiniPlayerView: View {
                 action()
             }
         }
-        .background(.bar)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 4)
+        .background {
+            #if os(watchOS)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.gray.opacity(0.2))
+            #else
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.bar)
+                .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 4)
+            #endif
+        }
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
     }
 }
+

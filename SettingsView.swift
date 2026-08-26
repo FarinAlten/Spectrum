@@ -8,6 +8,8 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
+#if !os(watchOS)
+
 fileprivate struct JSONDataDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.json] }
     static var writableContentTypes: [UTType] { [.json] }
@@ -58,6 +60,7 @@ enum SettingsTab: Hashable, CaseIterable {
     case appearance
     case audio
     case privacy
+    case openSource
     case info
     
     var title: LocalizedStringKey {
@@ -65,6 +68,7 @@ enum SettingsTab: Hashable, CaseIterable {
         case .appearance: return "Settings_Row_AppearanceAndLayout"
         case .audio: return "Settings_Row_AudioPlayback"
         case .privacy: return "Settings_Row_PrivacyData"
+        case .openSource: return "Settings_Row_OpenSource"
         case .info: return "Settings_Section_Info"
         }
     }
@@ -72,7 +76,7 @@ enum SettingsTab: Hashable, CaseIterable {
 
 // MARK: - Main Settings View
 struct SettingsView: View {
-    @Query private var storedFavorites: [FavoriteStation] // Query hier in der Haupt-View!
+    @Query private var storedFavorites: [FavoriteStation]
     
     @AppStorage("accentColorSelection") private var accentColorSelection = "blue"
     @Environment(\.dismiss) private var dismiss
@@ -125,6 +129,10 @@ struct SettingsView: View {
                             sidebarRow(title: "Settings_Row_PrivacyData", icon: "hand.raised.fill", color: .blue, tab: .privacy)
                         }
                         
+                        if matchesSearch("Open Source") || matchesSearch("Lizenzen") || matchesSearch("Licenses") || matchesSearch("Sparkle") {
+                            sidebarRow(title: "Settings_Row_OpenSource", icon: "doc.text.fill", color: .green, tab: .openSource)
+                        }
+                        
                         if matchesSearch("Info") || matchesSearch("Version") || matchesSearch("Build") {
                             sidebarRow(title: "Settings_Section_Info", icon: "info.circle.fill", color: .gray, tab: .info)
                         }
@@ -160,6 +168,8 @@ struct SettingsView: View {
                             AudioSettingsView()
                         case .privacy:
                             PrivacyAndDataSettingsView(storedFavorites: storedFavorites)
+                        case .openSource:
+                            OpenSourceLicensesView()
                         case .info:
                             MacInfoSettingsView()
                         case .none:
@@ -220,9 +230,19 @@ struct SettingsView: View {
                     }
                 }
                 
-                // SECTION: ABOUT / INFO
-                if matchesSearch("Info") || matchesSearch("Version") || matchesSearch("Entwickler") || matchesSearch("Build") {
+                // SECTION: ABOUT / INFO & OPEN SOURCE
+                if matchesSearch("Info") || matchesSearch("Version") || matchesSearch("Entwickler") || matchesSearch("Build") || matchesSearch("Open Source") || matchesSearch("Lizenzen") || matchesSearch("Sparkle") {
                     Section {
+                        if matchesSearch("Open Source") || matchesSearch("Lizenzen") || matchesSearch("Licenses") || matchesSearch("Sparkle") {
+                            NavigationLink(destination: OpenSourceLicensesView()) {
+                                Label {
+                                    Text("Settings_Row_OpenSource")
+                                } icon: {
+                                    SettingsIcon(systemName: "doc.text.fill", color: .green)
+                                }
+                            }
+                        }
+                        
                         HStack(alignment: .center) {
                             Label {
                                 Text("Settings_Row_Credits")
@@ -311,7 +331,7 @@ extension SettingsView {
 // MARK: - Appearance Settings
 struct AppearanceSettingsView: View {
     @AppStorage("preferredDisplayMode") private var preferredDisplayMode = "grid"
-    @AppStorage("maxGridColumns") private var maxGridColumns = 4
+    @AppStorage("maxGridColumns") private var maxGridColumns = 2
     @AppStorage("showFlagsAndEmojis") private var showFlagsAndEmojis = true
     @AppStorage("accentColorSelection") private var accentColorSelection = "blue"
     
@@ -389,7 +409,7 @@ struct AudioSettingsView: View {
 // MARK: - Privacy & Data Settings (Export/Import)
 struct PrivacyAndDataSettingsView: View {
     @Environment(\.modelContext) private var modelContext
-    let storedFavorites: [FavoriteStation] // Kein @Query mehr in dieser View!
+    let storedFavorites: [FavoriteStation]
     
     @AppStorage("allowTelemetry") private var allowTelemetry = true
     @AppStorage("loadFaviconsMobileData") private var loadFaviconsMobileData = true
@@ -486,7 +506,6 @@ struct PrivacyAndDataSettingsView: View {
         do {
             let data = try JSONEncoder().encode(exportableStations)
             #if os(macOS)
-            // Prevent re-entrant exports
             guard !isExporting else { return }
             exportDocument = JSONDataDocument(data: data)
             isExporting = true
@@ -510,12 +529,10 @@ struct PrivacyAndDataSettingsView: View {
 
             let activityVC = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
             activityVC.completionWithItemsHandler = { _, _, _, _ in
-                // Optionally clean up old temp files later; keep directory for future exports
             }
 
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController {
-                // Ensure presentation from the top-most view controller
                 var presenter = rootVC
                 while let presented = presenter.presentedViewController { presenter = presented }
                 if let popover = activityVC.popoverPresentationController {
@@ -556,6 +573,78 @@ struct PrivacyAndDataSettingsView: View {
     }
 }
 
+// MARK: - Open Source Licenses View
+struct OpenSourceItem: Identifiable {
+    let id = UUID()
+    let name: String
+    let licenseType: String
+    let description: String
+    let url: String
+}
+
+struct OpenSourceLicensesView: View {
+    private let packages: [OpenSourceItem] = [
+        OpenSourceItem(
+            name: "Sparkle Framework",
+            licenseType: "MIT License",
+            description: "Software-Update-Framework für macOS Apps.",
+            url: "https://sparkle-project.org"
+        ),
+        OpenSourceItem(
+            name: "Radio Browser API",
+            licenseType: "Community / Public Domain",
+            description: "Freie Radio-Datenbank-Schnittstelle.",
+            url: "https://www.radio-browser.info"
+        )
+    ]
+    
+    var body: some View {
+        Form {
+            Section {
+                ForEach(packages) { package in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(package.name)
+                                .font(.body)
+                                .fontWeight(.medium)
+                            
+                            Spacer()
+                            
+                            Text(package.licenseType)
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.primary.opacity(0.08))
+                                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                            
+                            if let url = URL(string: package.url) {
+                                Link(destination: url) {
+                                    Image(systemName: "arrow.up.right.square")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        
+                        Text(package.description)
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            } header: {
+                Text("Open-Source-Software & Bibliotheken")
+            } footer: {
+                Text("Vielen Dank an die Open-Source-Community für die Bereitstellung dieser Komponenten.")
+            }
+        }
+        #if !os(macOS)
+        .formStyle(.grouped)
+        .navigationTitle("Settings_Row_OpenSource")
+        #endif
+    }
+}
+
 // MARK: - Mac Info View
 #if os(macOS)
 struct MacInfoSettingsView: View {
@@ -580,3 +669,6 @@ func getAccentColor(_ name: String) -> Color {
     default: return .blue
     }
 }
+
+#endif
+

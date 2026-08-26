@@ -36,8 +36,16 @@ struct AirPlayPickerView: View {
         }
     }
 }
+#else
+// Fallback für watchOS und andere Plattformen
+struct AirPlayPickerView: View {
+    var body: some View {
+        EmptyView()
+    }
+}
 #endif
 
+#if !os(watchOS)
 struct FullPlayerView: View {
     @Environment(PlaybackManager.self) private var playbackManager
     @Environment(\.dismiss) private var dismiss
@@ -298,4 +306,5 @@ struct FavoriteButton: View {
         .buttonStyle(.plain)
     }
 }
+#endif
 
