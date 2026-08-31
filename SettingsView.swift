@@ -92,9 +92,7 @@ struct SettingsView: View {
     var body: some View {
         #if os(macOS)
         HStack(spacing: 0) {
-            // Linke Custom Sidebar
             VStack(spacing: 12) {
-                // Suchfeld oben
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
@@ -114,7 +112,6 @@ struct SettingsView: View {
                 .padding(.horizontal, 10)
                 .padding(.top, 10)
 
-                // Navigationselemente
                 ScrollView {
                     VStack(spacing: 4) {
                         if matchesSearch("Erscheinungsbild") || matchesSearch("Layout") || matchesSearch("Appearance") {
@@ -185,10 +182,8 @@ struct SettingsView: View {
         .frame(width: 650, height: 460)
         .tint(getAccentColor(accentColorSelection))
         #else
-        // Klassische iOS Inset-Grouped Liste
         NavigationStack {
             List {
-                // SECTION: CUSTOMIZE / DARSTELLUNG
                 if matchesSearch("Erscheinungsbild") || matchesSearch("Layout") || matchesSearch("Appearance") {
                     Section {
                         NavigationLink(destination: AppearanceSettingsView()) {
@@ -203,7 +198,6 @@ struct SettingsView: View {
                     }
                 }
                 
-                // SECTION: AUDIO & DATEN
                 if matchesSearch("Audio") || matchesSearch("Wiedergabe") || matchesSearch("Datenschutz") || matchesSearch("Export") || matchesSearch("Import") {
                     Section {
                         if matchesSearch("Audio") || matchesSearch("Wiedergabe") {
@@ -230,7 +224,6 @@ struct SettingsView: View {
                     }
                 }
                 
-                // SECTION: ABOUT / INFO & OPEN SOURCE
                 if matchesSearch("Info") || matchesSearch("Version") || matchesSearch("Entwickler") || matchesSearch("Build") || matchesSearch("Open Source") || matchesSearch("Lizenzen") || matchesSearch("Sparkle") {
                     Section {
                         if matchesSearch("Open Source") || matchesSearch("Lizenzen") || matchesSearch("Licenses") || matchesSearch("Sparkle") {
@@ -253,7 +246,6 @@ struct SettingsView: View {
                             VStack(alignment: .trailing, spacing: 2) {
                                 Text(String(localized: "Info_Developer_Name"))
                                     .fontWeight(.medium)
-                                Text(String(localized: "Settings_Row_MadeInGermany"))
                                     .font(.footnote)
                                     .foregroundColor(.secondary)
                             }
@@ -331,7 +323,7 @@ extension SettingsView {
 // MARK: - Appearance Settings
 struct AppearanceSettingsView: View {
     @AppStorage("preferredDisplayMode") private var preferredDisplayMode = "grid"
-    @AppStorage("maxGridColumns") private var maxGridColumns = 2
+    @AppStorage("maxGridColumns") private var maxGridColumns = 1
     @AppStorage("showFlagsAndEmojis") private var showFlagsAndEmojis = true
     @AppStorage("accentColorSelection") private var accentColorSelection = "blue"
     
@@ -345,7 +337,7 @@ struct AppearanceSettingsView: View {
                 .pickerStyle(.segmented)
                 
                 if preferredDisplayMode == "grid" {
-                    Stepper(value: $maxGridColumns, in: 2...5) {
+                    Stepper(value: $maxGridColumns, in: 1...5) {
                         Text(String(localized: "Appearance_Label_Columns")) + Text(": ") + Text("**\(maxGridColumns)**")
                     }
                 }
@@ -634,8 +626,6 @@ struct OpenSourceLicensesView: View {
                 }
             } header: {
                 Text("Open-Source-Software & Bibliotheken")
-            } footer: {
-                Text("Vielen Dank an die Open-Source-Community für die Bereitstellung dieser Komponenten.")
             }
         }
         #if !os(macOS)
@@ -652,7 +642,6 @@ struct MacInfoSettingsView: View {
         Form {
             Section {
                 LabeledContent(String(localized: "Info_Label_Developer"), value: String(localized: "Info_Developer_Name"))
-                LabeledContent(String(localized: "Info_Label_Origin"), value: String(localized: "Info_Origin_MadeInGermany"))
                 LabeledContent(String(localized: "Info_Label_Version"), value: Bundle.main.appVersionString)
             }
         }

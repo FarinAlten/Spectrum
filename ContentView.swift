@@ -5,6 +5,7 @@
 //  Created by Farin on 6/19/26.
 //
 import SwiftUI
+import SwiftData
 
 #if !os(watchOS)
 struct ContentView: View {
@@ -116,6 +117,51 @@ struct ContentView: View {
         #else
         return false
         #endif
+    }
+}
+
+// MARK: - Favorites Section View
+struct FavoritesSectionView: View {
+    @Query(sort: \FavoriteStation.createdAt, order: .reverse) private var favoriteStations: [FavoriteStation]
+    @Environment(\.modelContext) private var modelContext
+    @Environment(PlaybackManager.self) private var playbackManager
+    
+    var body: some View {
+        if favoriteStations.isEmpty {
+            Text("Noch keine Favoriten vorhanden")
+                .foregroundColor(.secondary)
+                .italic()
+        } else {
+            ForEach(favoriteStations) { favorite in
+                Button(action: {
+                    let station = RadioStation(id: favorite.id, name: favorite.name, url: favorite.url.absoluteString, favicon: favorite.favicon, tags: favorite.tags)
+                    playbackManager.play(station: station)
+                }) {
+                    HStack(spacing: 12) {
+                        AsyncImage(url: URL(string: favorite.favicon)) { phase in
+                            if let image = phase.image { image.resizable().aspectRatio(contentMode: .fit) }
+                            else { Image(systemName: "radio").foregroundColor(.secondary) }
+                        }
+                        .frame(width: 30, height: 30)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(favorite.name).font(.body).fontWeight(.medium)
+                            if !favorite.tags.isEmpty { Text(favorite.tags).font(.caption).foregroundColor(.secondary).lineLimit(1) }
+                        }
+                        Spacer()
+                        if playbackManager.currentStation?.id == favorite.id && playbackManager.isPlaying {
+                            Image(systemName: "waveform").foregroundColor(.blue).symbolEffect(.variableColor.iterative, options: .repeating)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button(role: .destructive) { modelContext.delete(favorite) } label: { Label("Entfernen", systemImage: "trash") }
+                }
+            }
+        }
     }
 }
 

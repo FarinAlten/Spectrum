@@ -9,6 +9,27 @@ import SwiftData
 
 #if !os(watchOS)
 
+// MARK: - Country Translation Extension (Ansatz 1)
+extension String {
+    var localizedCountryName: String {
+        let cleanCountry = self.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // 1. Suche die passende ISO-Region anhand des englischen Namens
+        if let region = Locale.Region.isoRegions.first(where: { region in
+            let englishName = Locale(identifier: "en_US").localizedString(forRegionCode: region.identifier)
+            return englishName?.caseInsensitiveCompare(cleanCountry) == .orderedSame
+        }) {
+            // 2. Gib den lokalisierten Namen in der aktuellen Sprache des Nutzers zurück
+            if let localizedName = Locale.current.localizedString(forRegionCode: region.identifier) {
+                return localizedName.capitalized
+            }
+        }
+        
+        // Fallback: Falls keine Entsprechung gefunden wird, den Originalnamen nutzen
+        return self
+    }
+}
+
 struct SelectedCategory: Identifiable, Hashable {
     let id = UUID()
     let name: String
@@ -20,10 +41,8 @@ struct DiscoverView: View {
     @Binding var categoryType: RadioAPIClient.CategoryType
     @Binding var searchText: String
     
-    @Query(sort: \FavoriteStation.createdAt, order: .reverse) private var favoriteStations: [FavoriteStation]
-    
     @AppStorage("preferredDisplayMode") private var preferredDisplayMode = "grid"
-    @AppStorage("maxGridColumns") private var maxGridColumns = 4
+    @AppStorage("maxGridColumns") private var maxGridColumns = 1
     @AppStorage("showFlagsAndEmojis") private var showFlagsAndEmojis = true
     
     private var gridColumns: [GridItem] {
@@ -34,12 +53,15 @@ struct DiscoverView: View {
         categoryType == .country ? "Countries" : "Genres"
     }
     
-    // MARK: - Filter für lokale Kategorien (Länder & Genres)
+    // MARK: - Filter für lokale Kategorien (Durchsucht Original- & übersetzte Namen)
     private var filteredCountries: [String] {
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return apiClient.countries
         }
-        return apiClient.countries.filter { $0.localizedCaseInsensitiveContains(searchText) }
+        return apiClient.countries.filter { country in
+            country.localizedCaseInsensitiveContains(searchText) ||
+            country.localizedCountryName.localizedCaseInsensitiveContains(searchText)
+        }
     }
     
     private var filteredGenres: [String] {
@@ -117,8 +139,8 @@ struct DiscoverView: View {
                                 ForEach(apiClient.searchResults) { station in
                                     StationRow(station: station)
                                         .padding(.horizontal)
-                                        .padding(.vertical, 8)
-                                    Divider().padding(.leading, 56)
+                                        .padding(.vertical, 4)
+                                    Divider().padding(.leading, 68)
                                 }
                             }
                         }
@@ -126,26 +148,6 @@ struct DiscoverView: View {
                     
                 } else {
                     // MARK: - Standardsicht ohne Suche
-                    #if os(iOS)
-                    if !favoriteStations.isEmpty {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Favorites")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .padding(.horizontal)
-                            
-                            LazyVStack(spacing: 0) {
-                                FavoritesSectionView()
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 6)
-                            }
-                            .background(Color(platformColor: .controlBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .padding(.horizontal)
-                        }
-                    }
-                    #endif
-                    
                     VStack(alignment: .leading, spacing: 12) {
                         Text(sectionHeaderTitle)
                             .font(.title3)
@@ -186,19 +188,22 @@ struct DiscoverView: View {
         }
     }
     
-    // MARK: - Dynamische Darstellung der Kategorien
+    // MARK: - Dynamische Darstellung der Kategorien (Inklusive Übersetzung)
     @ViewBuilder
     private func categoryItems(for categories: [String]) -> some View {
         ForEach(categories, id: \.self) { item in
+            // Für die Navigation schicken wir den API-Schlüssel (Original) mit, für das Display übersetzen wir
+            let displayTitle = categoryType == .country ? item.localizedCountryName : item
+            
             NavigationLink(value: SelectedCategory(name: item, type: categoryType)) {
                 if preferredDisplayMode == "grid" {
                     CategoryGridCard(
-                        title: item,
+                        title: displayTitle,
                         visualElement: showFlagsAndEmojis ? (categoryType == .country ? countryFlag(for: item) : genreEmoji(for: item)) : ""
                     )
                 } else {
                     CategoryListRow(
-                        title: item,
+                        title: displayTitle,
                         visualElement: showFlagsAndEmojis ? (categoryType == .country ? countryFlag(for: item) : genreEmoji(for: item)) : "",
                         accentColor: categoryType == .country ? .blue : .purple
                     )
@@ -208,258 +213,40 @@ struct DiscoverView: View {
         }
     }
     
-    /// Manuelle Zuordnung aller Länder und Flaggen via Switch-Statement
+    // Dynamische Flaggenauflösung mit Locale.Region.isoRegions (iOS 16+)
     private func countryFlag(for country: String) -> String {
         let cleanCountry = country.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         
+        // 1. Ist es bereits ein 2-stelliger ISO Code?
+        if cleanCountry.count == 2 {
+            return flagEmoji(for: cleanCountry)
+        }
+        
+        // 2. Dynamische Lokalisations-Suche über Locale.Region.isoRegions
+        if let region = Locale.Region.isoRegions.first(where: { region in
+            let code = region.identifier
+            let GermanName = Locale(identifier: "de_DE").localizedString(forRegionCode: code)?.lowercased()
+            let EnglishName = Locale(identifier: "en_US").localizedString(forRegionCode: code)?.lowercased()
+            let CurrentName = Locale.current.localizedString(forRegionCode: code)?.lowercased()
+            
+            return GermanName == cleanCountry || EnglishName == cleanCountry || CurrentName == cleanCountry
+        }) {
+            return flagEmoji(for: region.identifier)
+        }
+        
+        // 3. Spezifische Namensabweichungen & Aliase
         let isoCode: String
         switch cleanCountry {
-            
-        // MARK: - Europa
-        case "germany", "deutschland":
-            isoCode = "DE"
-        case "belgium", "belgien":
-            isoCode = "BE"
-        case "austria", "österreich":
-            isoCode = "AT"
-        case "switzerland", "schweiz":
-            isoCode = "CH"
-        case "france", "frankreich":
-            isoCode = "FR"
-        case "spain", "spanien":
-            isoCode = "ES"
-        case "italy", "italien":
-            isoCode = "IT"
-        case "netherlands", "niederlande", "the netherlands":
-            isoCode = "NL"
-        case "united kingdom", "uk", "great britain", "großbritannien":
-            isoCode = "GB"
-        case "ireland", "irland":
-            isoCode = "IE"
-        case "poland", "polen":
-            isoCode = "PL"
-        case "czech republic", "czechia", "tschechien":
-            isoCode = "CZ"
-        case "slovakia", "slowakei":
-            isoCode = "SK"
-        case "denmark", "dänemark":
-            isoCode = "DK"
-        case "sweden", "schweden":
-            isoCode = "SE"
-        case "norway", "norwegen":
-            isoCode = "NO"
-        case "finland", "finnland":
-            isoCode = "FI"
-        case "portugal":
-            isoCode = "PT"
-        case "greece", "griechenland":
-            isoCode = "GR"
-        case "turkey", "türkei", "türkiye":
-            isoCode = "TR"
-        case "ukraine":
-            isoCode = "UA"
-        case "russia", "russland", "russian federation":
-            isoCode = "RU"
-        case "romania", "rumänien":
-            isoCode = "RO"
-        case "hungary", "ungarn":
-            isoCode = "HU"
-        case "croatia", "kroatien":
-            isoCode = "HR"
-        case "serbia", "serbien":
-            isoCode = "RS"
-        case "bulgaria", "bulgarien":
-            isoCode = "BG"
-        case "slovenia", "slowenien":
-            isoCode = "SI"
-        case "iceland", "island":
-            isoCode = "IS"
-        case "luxembourg", "luxemburg":
-            isoCode = "LU"
-        case "liechtenstein":
-            isoCode = "LI"
-        case "monaco":
-            isoCode = "MC"
-        case "andorra":
-            isoCode = "AD"
-        case "malta":
-            isoCode = "MT"
-        case "cyprus", "zypern":
-            isoCode = "CY"
-        case "albania", "albanien":
-            isoCode = "AL"
-        case "bosnia and herzegovina", "bosnien und herzegowina":
-            isoCode = "BA"
-        case "north macedonia", "nordmazedonien":
-            isoCode = "MK"
-        case "montenegro":
-            isoCode = "ME"
-        case "estonia", "estland":
-            isoCode = "EE"
-        case "latvia", "lettland":
-            isoCode = "LV"
-        case "lithuania", "litauen":
-            isoCode = "LT"
-        case "belarus", "weißrussland":
-            isoCode = "BY"
-        case "moldova", "moldawien":
-            isoCode = "MD"
-
-        // MARK: - Nordamerika
-        case "united states", "united states of america", "usa", "the united states":
-            isoCode = "US"
-        case "canada", "kanada":
-            isoCode = "CA"
-        case "mexico", "mexiko":
-            isoCode = "MX"
-        case "cuba", "kuba":
-            isoCode = "CU"
-        case "jamaica", "jamaika":
-            isoCode = "JM"
-        case "dominican republic", "dominikanische republik":
-            isoCode = "DO"
-        case "puerto rico":
-            isoCode = "PR"
-        case "haiti":
-            isoCode = "HT"
-        case "bahamas":
-            isoCode = "BS"
-        case "costa rica":
-            isoCode = "CR"
-        case "panama":
-            isoCode = "PA"
-        case "guatemala":
-            isoCode = "GT"
-        case "honduras":
-            isoCode = "HN"
-        case "el salvador":
-            isoCode = "SV"
-        case "nicaragua":
-            isoCode = "NI"
-
-        // MARK: - Südamerika
-        case "brazil", "brasilien":
-            isoCode = "BR"
-        case "argentina", "argentinien":
-            isoCode = "AR"
-        case "chile":
-            isoCode = "CL"
-        case "colombia", "kolumbien":
-            isoCode = "CO"
-        case "peru":
-            isoCode = "PE"
-        case "venezuela":
-            isoCode = "VE"
-        case "ecuador":
-            isoCode = "EC"
-        case "bolivia", "bolivien":
-            isoCode = "BO"
-        case "paraguay":
-            isoCode = "PY"
-        case "uruguay":
-            isoCode = "UY"
-
-        // MARK: - Asien
-        case "japan":
-            isoCode = "JP"
-        case "china":
-            isoCode = "CN"
-        case "south korea", "korea", "republic of korea", "südkorea":
-            isoCode = "KR"
-        case "north korea", "nordkorea":
-            isoCode = "KP"
-        case "india", "indien":
-            isoCode = "IN"
-        case "thailand":
-            isoCode = "TH"
-        case "vietnam":
-            isoCode = "VN"
-        case "indonesia", "indonesien":
-            isoCode = "ID"
-        case "philippines", "philippinen":
-            isoCode = "PH"
-        case "malaysia":
-            isoCode = "MY"
-        case "singapore", "singapur":
-            isoCode = "SG"
-        case "taiwan":
-            isoCode = "TW"
-        case "hong kong", "hongkong":
-            isoCode = "HK"
-        case "pakistan":
-            isoCode = "PK"
-        case "bangladesh", "bangladesch":
-            isoCode = "BD"
-        case "sri lanka":
-            isoCode = "LK"
-        case "nepal":
-            isoCode = "NP"
-        case "kazakhstan", "kasachstan":
-            isoCode = "KZ"
-        case "uzbekistan", "usbekistan":
-            isoCode = "UZ"
-
-        // MARK: - Naher Osten & Nordafrika
-        case "israel":
-            isoCode = "IL"
-        case "saudi arabia", "saudi-arabien":
-            isoCode = "SA"
-        case "united arab emirates", "uae", "vereinigte arabische emirate":
-            isoCode = "AE"
-        case "qatar", "katar":
-            isoCode = "QA"
-        case "kuwait":
-            isoCode = "KW"
-        case "iran":
-            isoCode = "IR"
-        case "iraq", "irak":
-            isoCode = "IQ"
-        case "jordan", "jordanien":
-            isoCode = "JO"
-        case "lebanon", "libanon":
-            isoCode = "LB"
-        case "egypt", "ägypten":
-            isoCode = "EG"
-        case "morocco", "marokko":
-            isoCode = "MA"
-        case "algeria", "algerien":
-            isoCode = "DZ"
-        case "tunisia", "tunesien":
-            isoCode = "TN"
-
-        // MARK: - Sub-Sahara Afrika
-        case "south africa", "südafrika":
-            isoCode = "ZA"
-        case "nigeria":
-            isoCode = "NG"
-        case "kenya", "kenia":
-            isoCode = "KE"
-        case "ghana":
-            isoCode = "GH"
-        case "ethiopia", "äthiopien":
-            isoCode = "ET"
-        case "tanzania", "tansania":
-            isoCode = "TZ"
-        case "uganda":
-            isoCode = "UG"
-        case "senegal":
-            isoCode = "SN"
-        case "cameroon", "Kamerun":
-            isoCode = "CM"
-        case "madagascar", "madagaskar":
-            isoCode = "MG"
-
-        // MARK: - Ozeanien
-        case "australia", "australien":
-            isoCode = "AU"
-        case "new zealand", "neuseeland":
-            isoCode = "NZ"
-        case "fiji", "fidschi":
-            isoCode = "FJ"
-        case "papua new guinea", "papua-neuguinea":
-            isoCode = "PG"
-
-        // Fallback für ungematchte Eingaben
+        case "germany", "deutschland": isoCode = "DE"
+        case "austria", "österreich": isoCode = "AT"
+        case "switzerland", "schweiz": isoCode = "CH"
+        case "united states", "united states of america", "usa", "the united states": isoCode = "US"
+        case "united kingdom", "uk", "great britain", "großbritannien": isoCode = "GB"
+        case "russia", "russland", "russian federation": isoCode = "RU"
+        case "south korea", "korea", "republic of korea", "südkorea": isoCode = "KR"
+        case "north korea", "nordkorea": isoCode = "KP"
+        case "turkey", "türkei", "türkiye": isoCode = "TR"
+        case "czech republic", "czechia", "tschechien": isoCode = "CZ"
         default:
             return "🌍"
         }
@@ -467,7 +254,6 @@ struct DiscoverView: View {
         return flagEmoji(for: isoCode)
     }
 
-    /// Konvertiert einen ISO-2 Code (z.B. "DE") in das Unicode-Flaggen-Emoji (🇩🇪)
     private func flagEmoji(for isoCode: String) -> String {
         let code = isoCode.uppercased()
         guard code.count == 2 else { return "🌍" }
@@ -492,7 +278,6 @@ struct DiscoverView: View {
     }
 }
 
-// MARK: - UI-KOMPONENTEN
 struct CategoryGridCard: View {
     let title: String
     let visualElement: String
@@ -560,52 +345,16 @@ struct CategoryListRow: View {
     }
 }
 
-// MARK: - Favoriten & Stations-Zeilen
-struct FavoritesSectionView: View {
-    @Query(sort: \FavoriteStation.createdAt, order: .reverse) private var favoriteStations: [FavoriteStation]
-    @Environment(\.modelContext) private var modelContext
-    @Environment(PlaybackManager.self) private var playbackManager
-    
-    var body: some View {
-        ForEach(favoriteStations) { favorite in
-            Button(action: {
-                let station = RadioStation(id: favorite.id, name: favorite.name, url: favorite.url.absoluteString, favicon: favorite.favicon, tags: favorite.tags)
-                playbackManager.play(station: station)
-            }) {
-                HStack(spacing: 12) {
-                    AsyncImage(url: URL(string: favorite.favicon)) { phase in
-                        if let image = phase.image { image.resizable().aspectRatio(contentMode: .fit) }
-                        else { Image(systemName: "radio").foregroundColor(.secondary) }
-                    }
-                    .frame(width: 30, height: 30)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(favorite.name).font(.body).fontWeight(.medium)
-                        if !favorite.tags.isEmpty { Text(favorite.tags).font(.caption).foregroundColor(.secondary).lineLimit(1) }
-                    }
-                    Spacer()
-                    if playbackManager.currentStation?.id == favorite.id && playbackManager.isPlaying {
-                        Image(systemName: "waveform").foregroundColor(.blue).symbolEffect(.variableColor.iterative, options: .repeating)
-                    }
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .contextMenu {
-                Button(role: .destructive) { modelContext.delete(favorite) } label: { Label("Entfernen", systemImage: "trash") }
-            }
-        }
-    }
-}
-
-// MARK: - Detailansicht der gewählten Kategorie (Crash-frei ohne doppeltes .searchable)
+// MARK: - Category Station List View (Zeigt im Titel den übersetzten Namen)
 struct CategoryStationListView: View {
     let category: SelectedCategory
     @Bindable var apiClient: RadioAPIClient
     
     @State private var categorySearchText = ""
-    @State private var showFullPlayer = false
+    
+    private var displayTitle: String {
+        category.type == .country ? category.name.localizedCountryName : category.name
+    }
     
     private var filteredStations: [RadioStation] {
         if categorySearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -619,103 +368,184 @@ struct CategoryStationListView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Integriertes Inline-Suchfeld zur Vermeidung von Toolbar-Konflikten auf macOS
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.secondary)
-                TextField("In \(category.name) suchen...", text: $categorySearchText)
-                    .textFieldStyle(.plain)
-                if !categorySearchText.isEmpty {
-                    Button(action: { categorySearchText = "" }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(8)
-            .background(Color(platformColor: .controlBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .padding(.horizontal)
-            .padding(.top, 8)
-
-            List {
-                ForEach(filteredStations) { station in
-                    StationRow(station: station)
-                        .onAppear {
-                            if station.id == apiClient.stations.last?.id {
-                                Task {
-                                    await apiClient.loadMoreStations()
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                if filteredStations.isEmpty && !apiClient.isLoading {
+                    ContentUnavailableView(
+                        "Keine Sender gefunden",
+                        systemImage: "radio",
+                        description: Text("Versuche einen anderen Suchbegriff.")
+                    )
+                    .padding(.top, 40)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(filteredStations.enumerated()), id: \.element.id) { index, station in
+                            StationRow(station: station)
+                                .onAppear {
+                                    if station.id == apiClient.stations.last?.id {
+                                        Task {
+                                            await apiClient.loadMoreStations()
+                                        }
+                                    }
                                 }
+                            
+                            if index < filteredStations.count - 1 {
+                                Divider()
+                                    .padding(.leading, 68)
                             }
                         }
+                    }
+                    .background(Color(platformColor: .controlBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
                 }
                 
                 if apiClient.isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView("Lade weitere Sender...")
-                            .padding()
-                        Spacer()
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text("Lade Sender...")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
+                    .padding(.vertical, 20)
                 }
             }
-            #if os(macOS)
-            .listStyle(.inset)
-            #else
-            .listStyle(.insetGrouped)
-            #endif
+            .padding(.bottom, 20)
         }
-        .navigationTitle(category.name)
-        .safeAreaInset(edge: .bottom) {
-            MiniPlayerView(action: { showFullPlayer = true })
-        }
-        .sheet(isPresented: $showFullPlayer) {
-            FullPlayerView()
-        }
+        .background(Color(platformColor: .windowBackground))
+        .navigationTitle(displayTitle)
+        .searchable(
+            text: $categorySearchText,
+            placement: .automatic,
+            prompt: "In \(displayTitle) suchen..."
+        )
         .task {
             await apiClient.fetchStations(for: category.name, type: category.type)
         }
     }
 }
 
+// MARK: - Station Row
 struct StationRow: View {
     let station: RadioStation
     @Environment(PlaybackManager.self) private var playbackManager
+    @Environment(\.modelContext) private var modelContext
+    @Query private var favorites: [FavoriteStation]
+    
+    @State private var isHovered = false
+    
+    private var isPlayingCurrent: Bool {
+        playbackManager.currentStation?.id == station.id && playbackManager.isPlaying
+    }
+    
+    private var isFavorite: Bool {
+        favorites.contains { $0.id == station.id }
+    }
     
     var body: some View {
         Button(action: { playbackManager.play(station: station) }) {
-            HStack(spacing: 12) {
+            HStack(spacing: 14) {
+                // Station Favicon / Icon
                 AsyncImage(url: URL(string: station.favicon)) { phase in
-                    if let image = phase.image { image.resizable().aspectRatio(contentMode: .fit) }
-                    else { Image(systemName: "radio").foregroundColor(.secondary) }
+                    if let image = phase.image {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    } else {
+                        ZStack {
+                            Color.secondary.opacity(0.12)
+                            Image(systemName: "radio")
+                                .font(.system(size: 16))
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
-                .frame(width: 32, height: 32)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .frame(width: 42, height: 42)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                )
                 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(station.name).font(.body).foregroundColor(.primary)
-                    if !station.tags.isEmpty { Text(station.tags).font(.caption).foregroundColor(.secondary).lineLimit(1) }
+                // Station Info
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(station.name)
+                            .font(.body)
+                            .fontWeight(isPlayingCurrent ? .bold : .medium)
+                            .foregroundColor(isPlayingCurrent ? .accentColor : .primary)
+                            .lineLimit(1)
+                        
+                        if isPlayingCurrent {
+                            Image(systemName: "waveform")
+                                .font(.caption)
+                                .foregroundColor(.accentColor)
+                                .symbolEffect(.variableColor.iterative, options: .repeating)
+                        }
+                    }
+                    
+                    if !station.tags.isEmpty {
+                        Text(formattedTags(station.tags))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
                 }
+                
                 Spacer()
-                if playbackManager.currentStation?.id == station.id && playbackManager.isPlaying {
-                    Image(systemName: "waveform").foregroundColor(.blue).symbolEffect(.variableColor.iterative, options: .repeating)
+                
+                // Quick Favorite Button
+                Button(action: toggleFavorite) {
+                    Image(systemName: isFavorite ? "star.fill" : "star")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(isFavorite ? .yellow : .secondary.opacity(isHovered ? 0.8 : 0.3))
+                        .padding(6)
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(isHovered ? Color.primary.opacity(0.04) : Color.clear)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        #if !os(watchOS)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isHovered = hovering
+            }
+        }
+        #endif
+    }
+    
+    private func formattedTags(_ tags: String) -> String {
+        tags.split(separator: ",")
+            .prefix(3)
+            .map { $0.trimmingCharacters(in: .whitespaces).capitalized }
+            .joined(separator: " • ")
+    }
+    
+    private func toggleFavorite() {
+        if isFavorite {
+            if let entity = favorites.first(where: { $0.id == station.id }) {
+                modelContext.delete(entity)
+            }
+        } else {
+            let newFavorite = FavoriteStation(from: station)
+            modelContext.insert(newFavorite)
+        }
+        try? modelContext.save()
     }
 }
 
-// MARK: - Lokale Farb-Erweiterung
 enum PlatformColorSelection {
     case windowBackground
     case controlBackground
 }
 
-fileprivate extension Color {
+extension Color {
     init(platformColor: PlatformColorSelection) {
         #if os(macOS)
         switch platformColor {

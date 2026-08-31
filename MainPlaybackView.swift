@@ -38,7 +38,6 @@ struct MainPlaybackView: View {
             
             Spacer()
             
-            // Sendungsinformationen
             VStack(spacing: 8) {
                 Text(playbackManager.currentStation?.name ?? String(localized: "Player_Status_Pause"))
                     .font(.title2)

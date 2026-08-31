@@ -30,7 +30,6 @@ final class WatchConnectivityManager: NSObject, WCSessionDelegate {
         }
     }
     
-    // Status-Update an Companion senden
     func sendPlaybackState(stationName: String?, isPlaying: Bool) {
         guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
         let context: [String: Any] = [
@@ -40,7 +39,6 @@ final class WatchConnectivityManager: NSObject, WCSessionDelegate {
         try? WCSession.default.updateApplicationContext(context)
     }
     
-    // Steuerbefehl senden
     func sendCommand(_ command: String, stationID: String? = nil) {
         guard WCSession.default.isReachable else { return }
         var message: [String: Any] = ["command": command]
@@ -48,7 +46,6 @@ final class WatchConnectivityManager: NSObject, WCSessionDelegate {
         WCSession.default.sendMessage(message, replyHandler: nil)
     }
     
-    // MARK: - Delegate Callbacks
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         DispatchQueue.main.async { self.isReachable = session.isReachable }
     }

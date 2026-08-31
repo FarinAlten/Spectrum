@@ -11,6 +11,8 @@ import Observation
 
 #if os(macOS)
 import AppKit
+#elseif os(iOS)
+import UIKit
 #endif
 
 @Observable
@@ -21,6 +23,9 @@ final class PlaybackManager {
     var isLoadingStation = false
     
     private let sharedAudioPlayer = AVPlayer()
+    // Expose the underlying AVPlayer for features like Shazam audio tapping
+    var player: AVPlayer { sharedAudioPlayer }
+    
     private let nowPlayingInfoCenter = MPNowPlayingInfoCenter.default()
     private var playerItemObserver: NSKeyValueObservation?
     
@@ -28,37 +33,19 @@ final class PlaybackManager {
         setupRemoteCommandCenter()
         sharedAudioPlayer.automaticallyWaitsToMinimizeStalling = true
         nowPlayingInfoCenter.playbackState = .paused
-        
-        // Empfange Wiedergabebefehle von der Apple Watch via WatchConnectivityManager (Nur iOS / watchOS)
-        #if os(iOS) || os(watchOS)
-        WatchConnectivityManager.shared.onTogglePlaybackRequest = { [weak self] in
-            Task { @MainActor in
-                self?.togglePlayback()
-            }
-        }
-        #endif
     }
     
     func play(station: RadioStation) {
         self.currentStation = station
         self.isLoadingStation = true
         
-        // AudioSession-Konfiguration für iOS und watchOS
         #if os(iOS)
-        let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setCategory(.playback, mode: .default, options: [.allowAirPlay])
-            try audioSession.setActive(true)
-        } catch {
-            print("Fehler bei der Audio-Session-Initialisierung: \(error)")
-        }
-        #elseif os(watchOS)
-        let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setCategory(.playback, mode: .default)
-            try audioSession.setActive(true)
-        } catch {
-            print("Fehler bei der Audio-Session-Initialisierung: \(error)")
+        Task { [weak self] in
+            do {
+                try await self?.configureAudioSessionForPlayback()
+            } catch {
+                print("Fehler bei der Audio-Session-Initialisierung: \(error)")
+            }
         }
         #endif
         
@@ -107,14 +94,6 @@ final class PlaybackManager {
         
         updateNowPlaying(station: station, artwork: nil)
         
-        // Statusänderung an die Apple Watch (oder gekoppeltes Gerät) übertragen
-        #if os(iOS) || os(watchOS)
-        WatchConnectivityManager.shared.sendPlaybackState(
-            stationName: station.name,
-            isPlaying: true
-        )
-        #endif
-        
         if !station.favicon.isEmpty, let url = URL(string: station.favicon) {
             Task { [weak self] in
                 if let artwork = await self?.fetchArtwork(from: url) {
@@ -144,15 +123,25 @@ final class PlaybackManager {
         if let station = currentStation {
             updateNowPlayingStatusOnly(station: station)
         }
-        
-        // Aktualisierten Status an die Apple Watch synchronisieren
-        #if os(iOS) || os(watchOS)
-        WatchConnectivityManager.shared.sendPlaybackState(
-            stationName: currentStation?.name,
-            isPlaying: isPlaying
-        )
-        #endif
     }
+    
+    #if os(iOS)
+    private nonisolated func configureAudioSessionForPlayback() async throws {
+        let audioSession = AVAudioSession.sharedInstance()
+        // Hop to a background executor to avoid main-thread work while the audio session is active
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    try audioSession.setCategory(.playback, mode: .default, options: [.allowAirPlay])
+                    try audioSession.setActive(true)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+    #endif
     
     private func setupRemoteCommandCenter() {
         let commandCenter = MPRemoteCommandCenter.shared()
@@ -201,7 +190,7 @@ final class PlaybackManager {
     private func fetchArtwork(from url: URL) async -> MPMediaItemArtwork? {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            #if os(iOS) || os(watchOS)
+            #if os(iOS)
             if let image = UIImage(data: data) {
                 return MPMediaItemArtwork(boundsSize: image.size) { _ in image }
             }

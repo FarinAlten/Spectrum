@@ -12,7 +12,6 @@ struct MiniPlayerView: View {
     
     var body: some View {
         HStack(spacing: 14) {
-            // Linker Bereich: Album-Art/Logo & Senderelemente
             HStack(spacing: 14) {
                 AsyncImage(url: URL(string: playbackManager.currentStation?.favicon ?? "")) { image in
                     image
@@ -30,7 +29,6 @@ struct MiniPlayerView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    // Zeige den Sendernamen oder einen Standard-Platzhaltertext
                     Text(playbackManager.currentStation?.name ?? "Kein Sender ausgewählt")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.primary)
@@ -52,7 +50,6 @@ struct MiniPlayerView: View {
             
             Spacer()
             
-            // Rechter Bereich: Play/Pause Button oder Lade-Spinner
             if playbackManager.isLoadingStation {
                 ProgressView()
                     .controlSize(.small)
@@ -78,7 +75,6 @@ struct MiniPlayerView: View {
         .padding(.vertical, 10)
         .contentShape(Rectangle())
         .onTapGesture {
-            // Das detaillierte Sheet öffnet sich nur, wenn auch wirklich ein Sender aktiv ist
             if playbackManager.currentStation != nil {
                 action()
             }
