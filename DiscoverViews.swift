@@ -76,10 +76,7 @@ struct DiscoverView: View {
         mainContent
             .searchable(text: $searchText, prompt: "Sender, Länder, Genres...")
         #else
-        NavigationStack {
-            mainContent
-                .searchable(text: $searchText, prompt: "Sender, Länder, Genres...")
-        }
+        mainContent
         #endif
     }
     
@@ -108,8 +105,7 @@ struct DiscoverView: View {
                                 LazyVStack(spacing: 0) {
                                     categoryItems(for: matchingCategories)
                                 }
-                                .background(Color(platformColor: .controlBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .background(Color(platformColor: .controlBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 .padding(.horizontal)
                             }
                         }
@@ -165,8 +161,7 @@ struct DiscoverView: View {
                             LazyVStack(spacing: 0) {
                                 categoryItems(for: currentCategories)
                             }
-                            .background(Color(platformColor: .controlBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .background(Color(platformColor: .controlBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .padding(.horizontal)
                         }
                     }
@@ -180,11 +175,6 @@ struct DiscoverView: View {
         }
         .onChange(of: searchText) { _, newValue in
             Task { await apiClient.searchStations(matching: newValue) }
-        }
-        .task {
-            if apiClient.countries.isEmpty || apiClient.genres.isEmpty {
-                await apiClient.fetchDiscoverData()
-            }
         }
     }
     
@@ -300,16 +290,37 @@ struct CategoryGridCard: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 14)
-        .background(Color(platformColor: .controlBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(isHovered ? Color.primary.opacity(0.15) : Color.primary.opacity(0.04), lineWidth: 1)
-        )
-        .scaleEffect(isHovered ? 1.01 : 1.0)
-        .animation(.easeOut(duration: 0.12), value: isHovered)
+        .modifier(PlatformGlassCardModifier(isInteractive: isHovered))
+        .scaleEffect(isHovered ? 1.02 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isHovered)
         #if !os(watchOS)
         .onHover { hovering in isHovered = hovering }
+        #endif
+    }
+}
+
+private struct PlatformGlassCardModifier: ViewModifier {
+    var isInteractive: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        #if os(iOS)
+        if #available(iOS 26.0, *) {
+            content.glassEffect(
+                isInteractive ? .regular.tint(.accentColor).interactive() : .regular,
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
+        } else {
+            content.background(
+                Color(platformColor: .controlBackground),
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
+        }
+        #else
+        content.liquidGlass(
+            cornerRadius: 16,
+            tint: isInteractive ? Color.accentColor.opacity(0.10) : nil
+        )
         #endif
     }
 }
@@ -339,9 +350,7 @@ struct CategoryListRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        #if os(iOS)
-        Divider().padding(.leading, 54)
-        #endif
+        .contentShape(Rectangle())
     }
 }
 
@@ -395,8 +404,7 @@ struct CategoryStationListView: View {
                             }
                         }
                     }
-                    .background(Color(platformColor: .controlBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .liquidGlass(cornerRadius: 16)
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                 }
@@ -478,10 +486,7 @@ struct StationRow: View {
                             .lineLimit(1)
                         
                         if isPlayingCurrent {
-                            Image(systemName: "waveform")
-                                .font(.caption)
-                                .foregroundColor(.accentColor)
-                                .symbolEffect(.variableColor.iterative, options: .repeating)
+                            LiquidLiveWaveformView(isPlaying: true, tint: .accentColor, barCount: 3)
                         }
                     }
                     
@@ -507,7 +512,13 @@ struct StationRow: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(isHovered ? Color.primary.opacity(0.04) : Color.clear)
+            .background {
+                if isHovered {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                        .padding(.horizontal, 4)
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

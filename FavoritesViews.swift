@@ -32,8 +32,7 @@ struct FavoritesTabView: View {
                         LazyVStack(spacing: 0) {
                             favoriteListContent
                         }
-                        .background(Color(platformColor: .controlBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .liquidGlass(cornerRadius: 16)
                         .padding(.horizontal, 16)
                     }
                 }

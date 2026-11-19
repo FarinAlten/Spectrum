@@ -49,12 +49,7 @@ final class PlaybackManager {
         }
         #endif
         
-        var urlString = station.url
-        if urlString.hasPrefix("http://") {
-            urlString = urlString.replacingOccurrences(of: "http://", with: "https://")
-        }
-        
-        guard let secureUrl = URL(string: urlString) else {
+        guard let streamUrl = URL(string: station.url) else {
             self.isLoadingStation = false
             return
         }
@@ -66,7 +61,7 @@ final class PlaybackManager {
             AVURLAssetPreferPreciseDurationAndTimingKey: false
         ]
         
-        let asset = AVURLAsset(url: secureUrl, options: options)
+        let asset = AVURLAsset(url: streamUrl, options: options)
         let playerItem = AVPlayerItem(asset: asset)
         
         playerItem.preferredForwardBufferDuration = 5

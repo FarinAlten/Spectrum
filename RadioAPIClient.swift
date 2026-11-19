@@ -11,6 +11,7 @@ final class RadioAPIClient {
     var countries: [String] = []
     var genres: [String] = []
     var stations: [RadioStation] = []
+    var mapStations: [RadioStation] = []
     var searchResults: [RadioStation] = []
     var isLoading = false
     var hasMoreStations = true
@@ -28,17 +29,20 @@ final class RadioAPIClient {
     
     private var activeBaseURL: URL = URL(string: "https://de1.api.radio-browser.info/json")!
     private var isBaseURLResolved = false
+    private var isResolvingBaseURL = false
     private var currentMapTask: Task<Void, Never>?
     
-    private var apiSession: URLSession {
+    private let apiSession: URLSession = {
         let configuration = URLSessionConfiguration.default
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         configuration.httpAdditionalHeaders = [
             "User-Agent": "SpectrumRadioApp/1.0",
             "Accept": "application/json"
         ]
         configuration.timeoutIntervalForRequest = 10.0
         return URLSession(configuration: configuration)
-    }
+    }()
     
     private func filterUniqueNames(_ incomingStations: [RadioStation], existingNames: inout Set<String>) -> [RadioStation] {
         var uniqueStations: [RadioStation] = []
@@ -60,7 +64,9 @@ final class RadioAPIClient {
     }
     
     private func ensureValidBaseURL() async {
-        if isBaseURLResolved { return }
+        guard !isBaseURLResolved, !isResolvingBaseURL else { return }
+        isResolvingBaseURL = true
+        defer { isResolvingBaseURL = false }
         
         guard let url = URL(string: "https://all.api.radio-browser.info/json/servers") else { return }
         
@@ -83,7 +89,10 @@ final class RadioAPIClient {
     func fetchStationsInRegion(latitude: Double, longitude: Double, latDelta: Double, lonDelta: Double) async {
         currentMapTask?.cancel()
         
-        guard latDelta < 120.0 else { return }
+        guard latDelta < 120.0 else {
+            await MainActor.run { self.mapStations.removeAll(keepingCapacity: false) }
+            return
+        }
         
         currentMapTask = Task {
             await ensureValidBaseURL()
@@ -95,7 +104,7 @@ final class RadioAPIClient {
             let minLon = longitude - (lonDelta / 2.0)
             let maxLon = longitude + (lonDelta / 2.0)
             
-            let dynamicLimit = latDelta > 20.0 ? 400 : 200
+            let dynamicLimit = latDelta > 20.0 ? 100 : 75
             
             guard let url = URL(string: "\(activeBaseURL.absoluteString)/stations/search?minlatitude=\(minLat)&maxlatitude=\(maxLat)&minlongitude=\(minLon)&maxlongitude=\(maxLon)&limit=\(dynamicLimit)&has_geo=true&hidebroken=true&order=clickcount&reverse=true") else {
                 return
@@ -107,8 +116,9 @@ final class RadioAPIClient {
                 let decodedStations = try JSONDecoder().decode([RadioStation].self, from: data)
                 
                 await MainActor.run {
+                    guard !Task.isCancelled else { return }
                     var seenNames = Set<String>()
-                    self.stations = self.filterUniqueNames(decodedStations, existingNames: &seenNames)
+                    self.mapStations = self.filterUniqueNames(decodedStations, existingNames: &seenNames)
                 }
             } catch {
                 if !(error is CancellationError) {
@@ -125,7 +135,7 @@ final class RadioAPIClient {
         await ensureValidBaseURL()
         
         guard let encodedCountry = country.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "\(activeBaseURL.absoluteString)/stations/search?limit=250&country=\(encodedCountry)&has_geo=true&hidebroken=true&order=clickcount&reverse=true") else {
+              let url = URL(string: "\(activeBaseURL.absoluteString)/stations/search?limit=100&country=\(encodedCountry)&has_geo=true&hidebroken=true&order=clickcount&reverse=true") else {
             await MainActor.run { self.isLoading = false }
             return
         }
@@ -135,26 +145,34 @@ final class RadioAPIClient {
             let decodedStations = try JSONDecoder().decode([RadioStation].self, from: data)
             await MainActor.run {
                 var seenNames = Set<String>()
-                self.stations = self.filterUniqueNames(decodedStations, existingNames: &seenNames)
+                self.mapStations = self.filterUniqueNames(decodedStations, existingNames: &seenNames)
                 self.isLoading = false
             }
         } catch {
             await MainActor.run { self.isLoading = false }
         }
     }
+
+    func clearMapStations() {
+        currentMapTask?.cancel()
+        currentMapTask = nil
+        mapStations.removeAll(keepingCapacity: false)
+    }
     
     func fetchDiscoverData() async {
-        guard !isLoading else { return }
+        guard !isLoading, (countries.isEmpty || genres.isEmpty) else { return }
         await MainActor.run { self.isLoading = true }
-        
-        await ensureValidBaseURL()
         
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.fetchCountries() }
             group.addTask { await self.fetchGenres() }
         }
-        
         await MainActor.run { self.isLoading = false }
+
+        // Resolve the healthiest Radio Browser endpoint after the first screen is ready.
+        if !isBaseURLResolved {
+            Task { await ensureValidBaseURL() }
+        }
     }
     
     private func fetchCountries() async {
@@ -164,6 +182,7 @@ final class RadioAPIClient {
             let apiCountries = try JSONDecoder().decode([APICountry].self, from: data)
             await MainActor.run {
                 self.countries = apiCountries
+                    .filter { $0.stationcount > 0 }
                     .map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }
                     .filter { !$0.isEmpty }
                     .sorted()
@@ -178,7 +197,7 @@ final class RadioAPIClient {
             let apiTags = try JSONDecoder().decode([APITag].self, from: data)
             await MainActor.run {
                 self.genres = apiTags
-                    .filter { $0.stationcount > 100 }
+                    .filter { $0.stationcount > 0 }
                     .map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }
                     .filter { !$0.isEmpty }
                     .sorted()
@@ -210,8 +229,9 @@ final class RadioAPIClient {
     
     private func loadStationsPage(reset: Bool) async {
         let endpoint = currentCategoryType == .country ? "bycountry" : "bytag"
+        let pathAllowed = CharacterSet.urlPathAllowed.subtracting(CharacterSet(charactersIn: "/?#&"))
         
-        guard let encodedValue = currentCategoryValue.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+        guard let encodedValue = currentCategoryValue.addingPercentEncoding(withAllowedCharacters: pathAllowed),
               let url = URL(string: "\(activeBaseURL.absoluteString)/stations/\(endpoint)/\(encodedValue)?order=clickcount&reverse=true&hidebroken=true&offset=\(currentOffset)&limit=\(pageSize)") else {
             await MainActor.run { self.isLoading = false }
             return
@@ -252,7 +272,8 @@ final class RadioAPIClient {
         await MainActor.run { self.isLoading = true }
         await ensureValidBaseURL()
         
-        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+        let pathAllowed = CharacterSet.urlPathAllowed.subtracting(CharacterSet(charactersIn: "/?#&"))
+        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: pathAllowed),
               let url = URL(string: "\(activeBaseURL.absoluteString)/stations/byname/\(encodedQuery)") else {
             await MainActor.run { self.isLoading = false }
             return

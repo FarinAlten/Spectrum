@@ -12,6 +12,13 @@
 	<string>https://raw.githubusercontent.com/FarinAlten/Spectrum/main/appcast.xml</string>
 	<key>SUScheduledCheckInterval</key>
 	<integer>86400</integer>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Spectrum benötigt deinen Standort, um Radiosender in deiner Nähe auf der Karte anzuzeigen.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

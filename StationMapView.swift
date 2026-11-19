@@ -30,6 +30,8 @@ struct StationMapView: View {
     var apiClient: RadioAPIClient
     @Environment(PlaybackManager.self) private var playbackManager
     @State private var permissionManager = LocationPermissionManager()
+    @State private var selectedStationID: String?
+    @State private var isMapActive = false
     
     @State private var isSatelliteMode = false
     
@@ -46,43 +48,40 @@ struct StationMapView: View {
     )
     
     var body: some View {
-        Map(position: $position) {
-            ForEach(apiClient.searchResults.isEmpty ? apiClient.stations : apiClient.searchResults) { station in
+        Group {
+            if isMapActive {
+                mapContent
+            } else {
+                Color.clear
+            }
+        }
+        .onAppear {
+            isMapActive = true
+            permissionManager.requestPermission()
+            if apiClient.mapStations.isEmpty {
+                triggerRegionFetch(region: currentRegion)
+            }
+        }
+        .onDisappear {
+            isMapActive = false
+            selectedStationID = nil
+            apiClient.clearMapStations()
+        }
+    }
+
+    private var mapContent: some View {
+        Map(position: $position, selection: $selectedStationID) {
+            ForEach(apiClient.mapStations) { station in
                 if let lat = station.latitude, let lon = station.longitude, lat != 0, lon != 0 {
                     let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-                    
-                    Annotation(station.name, coordinate: coordinate, anchor: .bottom) {
-                        Button(action: {
-                            playbackManager.play(station: station)
-                        }) {
-                            VStack(spacing: 4) {
-                                if playbackManager.currentStation?.id == station.id && playbackManager.isPlaying {
-                                    Image(systemName: "waveform")
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(.white)
-                                        .padding(8)
-                                        .background(Color.blue)
-                                        .clipShape(Circle())
-                                        .symbolEffect(.variableColor.iterative, options: .repeating)
-                                } else {
-                                    Image(systemName: "radio.circle.fill")
-                                        .font(.title)
-                                        .foregroundColor(.blue)
-                                        .background(Color.white.clipShape(Circle()))
-                                }
-                                
-                                Text(truncate(station.name, length: 8))
-                                    .font(.caption2)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.primary)
-                                    .lineLimit(1)
-                                    .fixedSize()
-                                    .modifier(MapLabelStyle())
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .annotationTitles(.hidden)
+
+                    Marker(
+                        station.name,
+                        systemImage: "dot.radiowaves.left.and.right",
+                        coordinate: coordinate
+                    )
+                    .tag(station.id)
+                    .tint(playbackManager.currentStation?.id == station.id ? .red : .blue)
                 }
             }
         }
@@ -92,9 +91,14 @@ struct StationMapView: View {
             MapCompass()
             MapPitchToggle()
         }
-        .onMapCameraChange { context in
+        .onMapCameraChange(frequency: .onEnd) { context in
             self.currentRegion = context.region
             triggerRegionFetch(region: context.region)
+        }
+        .onChange(of: selectedStationID) { _, newID in
+            guard let newID,
+                  let station = apiClient.mapStations.first(where: { $0.id == newID }) else { return }
+            playbackManager.play(station: station)
         }
         .navigationTitle("Map_Title_Main")
         #if os(iOS)
@@ -110,9 +114,6 @@ struct StationMapView: View {
                 .help("Toggle satellite map style")
             }
         }
-        .task {
-            permissionManager.requestPermission()
-        }
     }
     
     private func triggerRegionFetch(region: MKCoordinateRegion) {
@@ -126,35 +127,6 @@ struct StationMapView: View {
         }
     }
     
-    private func truncate(_ text: String, length: Int) -> String {
-        if text.count > length {
-            return String(text.prefix(length)) + "…"
-        }
-        return text
-    }
-}
-
-struct MapLabelStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        #if os(macOS)
-        let bgColor = Color(.windowBackgroundColor).opacity(0.95)
-        #elseif os(iOS)
-        let bgColor = Color(.systemBackground).opacity(0.95)
-        #else
-        let bgColor = Color.black.opacity(0.95)
-        #endif
-        
-        return content
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(bgColor)
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
-            )
-            .shadow(color: Color.black.opacity(0.15), radius: 3, x: 0, y: 1)
-    }
 }
 
 #endif

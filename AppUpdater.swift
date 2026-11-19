@@ -4,12 +4,12 @@
 //
 //  Created by Farin on 6/19/26.
 //
-#if os(macos)
+
+#if os(macOS)
 import Foundation
-
-import Sparkle
-
 import SwiftUI
+#if canImport(Sparkle)
+import Sparkle
 
 // MARK: - Sparkle Controller Wrapper
 @Observable
@@ -18,7 +18,6 @@ final class AppUpdater: NSObject, SPUUpdaterDelegate {
     
     override init() {
         super.init()
-        // Initialisiert Sparkle mit dem Standard-UI-Dialog von macOS
         self.updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
     }
     
@@ -31,4 +30,18 @@ final class AppUpdater: NSObject, SPUUpdaterDelegate {
         updaterController.updater.canCheckForUpdates
     }
 }
+#else
+@Observable
+final class AppUpdater: NSObject {
+    func checkForUpdates() {
+        if let url = URL(string: "https://github.com/farin/Spectrum/releases") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+    
+    var canCheckForUpdates: Bool {
+        true
+    }
+}
+#endif
 #endif
